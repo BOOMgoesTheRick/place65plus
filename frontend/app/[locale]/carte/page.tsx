@@ -1,6 +1,7 @@
 import { supabase, Residence } from "@/lib/supabase";
 import Header from "@/components/Header";
 import MapView from "@/components/MapView";
+import MapErrorBoundary from "@/components/MapErrorBoundary";
 import ResidenceCard from "@/components/ResidenceCard";
 import { getTranslations } from "next-intl/server";
 
@@ -56,8 +57,10 @@ export default async function CartePage({
         </aside>
 
         {/* Map */}
-        <main className="flex-1 relative">
-          <MapView residences={residences} apiKey={apiKey} />
+        <main className="flex-1 relative flex">
+          <MapErrorBoundary>
+            <MapView residences={residences} apiKey={apiKey} />
+          </MapErrorBoundary>
 
           {/* Mobile bottom bar */}
           <div className="absolute bottom-4 left-4 right-4 md:hidden bg-white rounded-xl shadow-lg p-3 border border-gris">
