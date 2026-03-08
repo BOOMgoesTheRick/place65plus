@@ -29,7 +29,7 @@ function GeolocateController() {
   useEffect(() => {
     if (!map || !navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(
-      (pos) => { map.panTo({ lat: pos.coords.latitude, lng: pos.coords.longitude }); map.setZoom(10); },
+      (pos) => { map.panTo({ lat: pos.coords.latitude, lng: pos.coords.longitude }); map.setZoom(13); },
       () => {}
     );
   }, [map]);
