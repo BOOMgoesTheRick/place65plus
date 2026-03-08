@@ -131,7 +131,58 @@ export default async function FichePage({ params }: FichePageProps) {
       ? `https://maps.google.com/maps?q=${r.latitude},${r.longitude}&z=15&t=m&output=embed`
       : null;
 
+  const jsonLdBusiness = {
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    name: r.nom,
+    url: r.site_web ?? `https://place65plus.quebec/residence/${r.id}`,
+    ...(r.telephone && { telephone: r.telephone }),
+    ...(r.photo_url && { image: r.photo_url }),
+    address: {
+      "@type": "PostalAddress",
+      ...(r.adresse && { streetAddress: r.adresse }),
+      ...(r.ville && { addressLocality: r.ville }),
+      ...(r.region && { addressRegion: r.region }),
+      ...(r.code_postal && { postalCode: r.code_postal }),
+      addressCountry: "CA",
+    },
+    ...(r.latitude && r.longitude && {
+      geo: {
+        "@type": "GeoCoordinates",
+        latitude: r.latitude,
+        longitude: r.longitude,
+      },
+    }),
+    ...(r.note_google && r.nb_avis_google && {
+      aggregateRating: {
+        "@type": "AggregateRating",
+        ratingValue: r.note_google.toFixed(1),
+        reviewCount: r.nb_avis_google,
+        bestRating: "5",
+        worstRating: "1",
+      },
+    }),
+  };
+
+  const jsonLdBreadcrumb = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Accueil", item: "https://place65plus.quebec" },
+      ...(r.region
+        ? [{ "@type": "ListItem", position: 2, name: r.region, item: `https://place65plus.quebec/residences/region/${encodeURIComponent(r.region.toLowerCase().replace(/ /g, "-"))}` }]
+        : []),
+      ...(r.ville
+        ? [{ "@type": "ListItem", position: r.region ? 3 : 2, name: r.ville, item: `https://place65plus.quebec/residences/${encodeURIComponent(r.ville.toLowerCase().replace(/ /g, "-"))}` }]
+        : []),
+      { "@type": "ListItem", position: (r.region ? 1 : 0) + (r.ville ? 1 : 0) + 2, name: r.nom, item: `https://place65plus.quebec/residence/${r.id}` },
+    ],
+  };
+
   return (
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdBusiness) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdBreadcrumb) }} />
     <div className="min-h-screen bg-[#FAFAF8]">
       <Header />
 
@@ -442,5 +493,6 @@ export default async function FichePage({ params }: FichePageProps) {
         <p>© {new Date().getFullYear()} Place 65+</p>
       </footer>
     </div>
+    </>
   );
 }

@@ -49,6 +49,7 @@ export async function generateMetadata({
       languages: { fr: baseUrl, en: `${baseUrl}/en` },
     },
     robots: { index: true, follow: true, googleBot: { index: true, follow: true } },
+    twitter: { card: "summary_large_image", site: "@place65plus" },
   };
 }
 

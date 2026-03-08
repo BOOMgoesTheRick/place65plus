@@ -67,7 +67,19 @@ export default async function VillePage({ params }: Props) {
 
   const region = residences[0]?.region;
 
+  const jsonLdBreadcrumb = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Accueil", item: "https://place65plus.quebec" },
+      ...(region ? [{ "@type": "ListItem", position: 2, name: region, item: `https://place65plus.quebec/residences/region/${encodeURIComponent(region.toLowerCase().replace(/ /g, "-"))}` }] : []),
+      { "@type": "ListItem", position: region ? 3 : 2, name: ville, item: `https://place65plus.quebec/residences/${slug}` },
+    ],
+  };
+
   return (
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdBreadcrumb) }} />
     <div className="min-h-screen">
       <Header />
 
@@ -125,5 +137,6 @@ export default async function VillePage({ params }: Props) {
         <p>{tf("simple", { year: new Date().getFullYear() })}</p>
       </footer>
     </div>
+    </>
   );
 }

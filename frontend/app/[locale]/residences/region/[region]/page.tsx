@@ -65,6 +65,15 @@ export default async function RegionPage({ params }: Props) {
 
   if (residences.length === 0) notFound();
 
+  const jsonLdBreadcrumb = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Accueil", item: "https://place65plus.quebec" },
+      { "@type": "ListItem", position: 2, name: region, item: `https://place65plus.quebec/residences/region/${slug}` },
+    ],
+  };
+
   // Group by city
   const byVille = residences.reduce<Record<string, Residence[]>>((acc, r) => {
     const v = r.ville ?? "Autres";
@@ -76,6 +85,8 @@ export default async function RegionPage({ params }: Props) {
   const villes = Object.keys(byVille).sort();
 
   return (
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdBreadcrumb) }} />
     <div className="min-h-screen">
       <Header />
 
@@ -138,5 +149,6 @@ export default async function RegionPage({ params }: Props) {
         <p>{tf("simple", { year: new Date().getFullYear() })}</p>
       </footer>
     </div>
+    </>
   );
 }

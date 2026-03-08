@@ -20,9 +20,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Unique cities
   const villes = [...new Set((residences ?? []).map((r) => r.ville).filter(Boolean))];
   const villeUrls: MetadataRoute.Sitemap = villes.map((ville) => ({
-    url: `${baseUrl}/recherche?q=${encodeURIComponent(ville!)}`,
+    url: `${baseUrl}/residences/${encodeURIComponent(ville!.toLowerCase().replace(/ /g, "-"))}`,
     changeFrequency: "weekly",
     priority: 0.6,
+  }));
+
+  // Unique regions
+  const regions = [...new Set((residences ?? []).map((r) => r.region).filter(Boolean))];
+  const regionUrls: MetadataRoute.Sitemap = regions.map((region) => ({
+    url: `${baseUrl}/residences/region/${encodeURIComponent(region!.toLowerCase().replace(/ /g, "-"))}`,
+    changeFrequency: "weekly",
+    priority: 0.7,
   }));
 
   const blogUrls: MetadataRoute.Sitemap = [
@@ -40,6 +48,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${baseUrl}/recherche`, changeFrequency: "daily", priority: 0.9 },
     { url: `${baseUrl}/carte`, changeFrequency: "weekly", priority: 0.5 },
     ...blogUrls,
+    ...regionUrls,
     ...villeUrls,
     ...residenceUrls,
   ];
