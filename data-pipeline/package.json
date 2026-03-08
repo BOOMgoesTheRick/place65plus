@@ -11,6 +11,8 @@
     "import": "node scripts/05-import-supabase.js",
     "refresh": "node scripts/06-refresh-ratings.js",
     "add-montreal": "node scripts/07-add-montreal-ciusss.js",
+    "flag-suspicious": "node scripts/08-flag-suspicious.js",
+    "flag-suspicious-csv": "node scripts/08-flag-suspicious.js --csv",
     "pipeline": "npm run scrape && npm run clean && npm run geocode && npm run import"
   },
   "keywords": [],
