@@ -28,8 +28,27 @@ function GeolocateController() {
 
 export default function MapView({ residences, apiKey }: MapViewProps) {
   const [selected, setSelected] = useState<Residence | null>(null);
+  const [authFailed, setAuthFailed] = useState(false);
+
+  useEffect(() => {
+    // Intercept Google Maps auth failure globally to prevent unhandled crash
+    (window as unknown as Record<string, unknown>).gm_authFailure = () => setAuthFailed(true);
+    return () => { delete (window as unknown as Record<string, unknown>).gm_authFailure; };
+  }, []);
 
   const withCoords = residences.filter((r) => r.latitude != null && r.longitude != null);
+
+  if (authFailed) {
+    return (
+      <div className="flex-1 flex items-center justify-center bg-gray-100 text-center p-8">
+        <div>
+          <p className="text-2xl mb-2">🗺️</p>
+          <p className="font-semibold text-gray-700">Carte temporairement indisponible</p>
+          <p className="text-sm text-gray-400 mt-1">Problème de clé Google Maps — réessayez dans quelques minutes.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <APIProvider apiKey={apiKey}>
