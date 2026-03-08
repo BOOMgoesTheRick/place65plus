@@ -72,6 +72,9 @@ function normalizeQuery(s: string) {
 function expandCityQuery(q: string): string[] {
   const variants = [q];
   const lower = q.toLowerCase();
+  // space ↔ hyphen (ex: "trois rivieres" → "trois-rivieres")
+  if (q.includes(" ")) variants.push(q.replace(/ /g, "-"));
+  if (q.includes("-")) variants.push(q.replace(/-/g, " "));
   // "st-X" → essaie aussi "saint-X"
   if (lower.startsWith("st-") || lower.startsWith("st ")) {
     variants.push("saint-" + q.slice(3));
@@ -142,7 +145,12 @@ async function getResidences(
       query = query.in("id", nearbyIds);
     } else {
       const qn = normalizeQuery(q);
-      query = query.or(`nom_search.ilike.%${qn}%,ville_search.ilike.%${qn}%,region_search.ilike.%${qn}%`);
+      const qnH = qn.replace(/ /g, "-");
+      const qnS = qn.replace(/-/g, " ");
+      const fields = ["nom_search", "ville_search", "region_search"];
+      const terms = [...new Set([qn, qnH, qnS])];
+      const clauses = fields.flatMap((f) => terms.map((t) => `${f}.ilike.%${t}%`));
+      query = query.or(clauses.join(","));
     }
   }
   if (region) {
