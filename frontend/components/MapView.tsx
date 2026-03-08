@@ -1,8 +1,9 @@
 "use client";
 
-import { APIProvider, Map, AdvancedMarker, Pin, InfoWindow, useMap } from "@vis.gl/react-google-maps";
+import { APIProvider, Map, AdvancedMarker, Pin, useMap } from "@vis.gl/react-google-maps";
 import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
+import { useRouter } from "@/i18n/navigation";
 import { Residence } from "@/lib/supabase";
 import ResidenceCard from "@/components/ResidenceCard";
 
@@ -39,7 +40,7 @@ export default function MapView({ residences, apiKey, locale }: MapViewProps) {
   const t = useTranslations("carte");
   const lcLocale = locale === "fr" ? "fr-CA" : "en-CA";
 
-  const [selected, setSelected] = useState<Residence | null>(null);
+  const router = useRouter();
   const [authFailed, setAuthFailed] = useState(false);
   const [bounds, setBounds] = useState<Bounds | null>(null);
 
@@ -107,34 +108,11 @@ export default function MapView({ residences, apiKey, locale }: MapViewProps) {
               <AdvancedMarker
                 key={r.id}
                 position={{ lat: r.latitude!, lng: r.longitude! }}
-                onClick={() => setSelected(r)}
+                onClick={() => router.push(`/residence/${r.id}`)}
               >
                 <Pin background="#C4593A" borderColor="#A84830" glyphColor="#FAF7F2" />
               </AdvancedMarker>
             ))}
-
-            {selected && selected.latitude && selected.longitude && (
-              <InfoWindow
-                position={{ lat: selected.latitude, lng: selected.longitude }}
-                onCloseClick={() => setSelected(null)}
-              >
-                <div className="p-1 max-w-[220px]">
-                  <h3 className="font-semibold text-marine text-sm leading-tight mb-1">{selected.nom}</h3>
-                  <p className="text-gray-500 text-xs mb-1">{selected.ville}</p>
-                  {selected.note_google && (
-                    <p className="text-xs text-or font-medium mb-1">
-                      ⭐ {selected.note_google.toFixed(1)}
-                      {selected.nb_avis_google ? ` (${selected.nb_avis_google} avis)` : ""}
-                    </p>
-                  )}
-                  {selected.telephone && (
-                    <a href={`tel:${selected.telephone}`} className="text-xs text-terracotta font-medium">
-                      {selected.telephone}
-                    </a>
-                  )}
-                </div>
-              </InfoWindow>
-            )}
           </Map>
         </APIProvider>
 

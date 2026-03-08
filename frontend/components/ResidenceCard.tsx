@@ -24,16 +24,24 @@ function StarRating({ rating }: { rating: number }) {
   );
 }
 
+function fixPhotoUrl(url: string | null): string | null {
+  if (!url || !url.includes("place/photo")) return url;
+  const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY;
+  if (!key) return url;
+  return url.replace(/key=[^&]+/, `key=${key}`);
+}
+
 export default function ResidenceCard({ residence }: ResidenceCardProps) {
+  const photoUrl = fixPhotoUrl(residence.photo_url);
   return (
     <div className="relative">
     <Link href={`/residence/${residence.id}`} className="block bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow border border-gris group">
       {/* Photo */}
       <div className="relative h-44 bg-gris overflow-hidden">
-        {residence.photo_url ? (
+        {photoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={residence.photo_url}
+            src={photoUrl}
             alt={residence.nom}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />
