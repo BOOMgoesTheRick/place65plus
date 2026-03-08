@@ -1,0 +1,54 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@theme inline {
+  --color-creme: #FAF7F2;
+  --color-terracotta: #C4593A;
+  --color-terracotta-dark: #A84830;
+  --color-marine: #1C2B4A;
+  --color-marine-light: #2A3F6B;
+  --color-or: #E8C97A;
+  --color-or-light: #F2D98A;
+  --color-gris: #F0EDE8;
+  --color-texte: #2D2D2D;
+
+  --font-display: var(--font-playfair);
+  --font-body: var(--font-dm-sans);
+}
+
+body {
+  background-color: #FAF7F2;
+  color: #2D2D2D;
+  font-family: var(--font-dm-sans), system-ui, sans-serif;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-playfair), Georgia, serif;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.hero-line-1 { animation: fadeInUp 0.7s ease both; }
+.hero-line-2 { animation: fadeInUp 0.7s ease 0.15s both; }
+.hero-line-3 { animation: fadeInUp 0.7s ease 0.28s both; }
+.hero-search { animation: fadeInUp 0.7s ease 0.42s both; }
+.hero-bg-num { animation: fadeIn 1.2s ease 0.1s both; }
+
+.nav-dot::after {
+  content: '';
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background-color: #E8C97A;
+}

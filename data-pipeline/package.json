@@ -1,0 +1,27 @@
+{
+  "name": "data-pipeline",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "scrape": "node scripts/01-scrape-k10.js",
+    "clean": "node scripts/02-clean.js",
+    "geocode": "node scripts/03-geocode.js",
+    "enrich": "node scripts/04-enrich-google.js",
+    "import": "node scripts/05-import-supabase.js",
+    "refresh": "node scripts/06-refresh-ratings.js",
+    "pipeline": "npm run scrape && npm run clean && npm run geocode && npm run import"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.98.0",
+    "axios": "^1.13.6",
+    "cheerio": "^1.2.0",
+    "csv-parse": "^6.1.0",
+    "csv-stringify": "^6.6.0",
+    "dotenv": "^17.3.1"
+  }
+}

@@ -1,0 +1,38 @@
+name: Refresh Google Ratings
+
+on:
+  schedule:
+    # Tous les lundis à 6h UTC (2h EST)
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+    inputs:
+      batch:
+        description: "Nombre de résidences à rafraîchir"
+        default: "60"
+        required: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: data-pipeline
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: data-pipeline/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Refresh ratings
+        run: node scripts/06-refresh-ratings.js --batch ${{ github.event.inputs.batch || '60' }}
+        env:
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}

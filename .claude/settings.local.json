@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip:*)",
+      "Bash(where:*)",
+      "Bash(py:*)",
+      "WebFetch(domain:www.donneesquebec.ca)",
+      "WebFetch(domain:msss.gouv.qc.ca)",
+      "WebFetch(domain:k10.pub.msss.rtss.qc.ca)",
+      "WebSearch",
+      "Bash(mkdir:*)",
+      "Bash(npm install:*)",
+      "Bash(node:*)",
+      "Bash(rm:*)",
+      "Bash(npm run:*)",
+      "WebFetch(domain:docs.cloud.google.com)",
+      "Bash(npx create-next-app@latest:*)",
+      "Bash(C:/web/residence/frontend/.env.local:*)",
+      "Bash(curl:*)",
+      "Bash(cat:*)",
+      "Bash(xargs sed:*)",
+      "Bash(test:*)",
+      "Bash(npm i:*)",
+      "Bash(vercel:*)"
+    ]
+  }
+}
