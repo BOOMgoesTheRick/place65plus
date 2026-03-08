@@ -61,6 +61,7 @@ interface SearchPageProps {
     region?: string;
     categorie?: string;
     note?: string;
+    statut?: string;
     page?: string;
   }>;
 }
@@ -135,6 +136,7 @@ async function getResidences(
   region: string,
   categorie: string,
   note: string,
+  statut: string,
   page: number
 ): Promise<{ data: Residence[]; count: number }> {
   let query = supabase.from("residences").select("*", { count: "exact" });
@@ -162,6 +164,11 @@ async function getResidences(
   if (note) {
     query = query.gte("note_google", parseFloat(note));
   }
+  if (statut === "certifiee") {
+    query = query.eq("statut", "Certifiée");
+  } else if (statut === "noncertifiee") {
+    query = query.is("statut", null);
+  }
 
   query = query
     .order("quality_score", { ascending: false, nullsFirst: false })
@@ -182,10 +189,11 @@ export default async function RecherchePage({ params, searchParams }: SearchPage
   const region = sp.region ?? "";
   const categorie = sp.categorie ?? "";
   const note = sp.note ?? "";
+  const statut = sp.statut ?? "";
   const page = parseInt(sp.page ?? "1", 10);
   const lcLocale = locale === "fr" ? "fr-CA" : "en-CA";
 
-  const { data: residences, count } = await getResidences(q, region, categorie, note, page);
+  const { data: residences, count } = await getResidences(q, region, categorie, note, statut, page);
   const totalPages = Math.ceil(count / PAGE_SIZE);
 
   const buildPageUrl = (p: number) => {
@@ -194,6 +202,7 @@ export default async function RecherchePage({ params, searchParams }: SearchPage
     if (region) urlParams.set("region", region);
     if (categorie) urlParams.set("categorie", categorie);
     if (note) urlParams.set("note", note);
+    if (statut) urlParams.set("statut", statut);
     if (p > 1) urlParams.set("page", String(p));
     return `/recherche?${urlParams.toString()}`;
   };
@@ -205,7 +214,7 @@ export default async function RecherchePage({ params, searchParams }: SearchPage
       <div className="bg-white border-b border-gris sticky top-16 z-40 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-3 space-y-3">
           <SearchBar defaultValue={q} />
-          <FilterBar currentRegion={region} currentCategorie={categorie} currentRating={note} />
+          <FilterBar currentRegion={region} currentCategorie={categorie} currentRating={note} currentStatut={statut} />
         </div>
       </div>
 

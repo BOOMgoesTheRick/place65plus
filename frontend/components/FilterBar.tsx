@@ -22,9 +22,10 @@ interface FilterBarProps {
   currentRegion?: string;
   currentCategorie?: string;
   currentRating?: string;
+  currentStatut?: string;
 }
 
-export default function FilterBar({ currentRegion = "", currentCategorie = "", currentRating = "" }: FilterBarProps) {
+export default function FilterBar({ currentRegion = "", currentCategorie = "", currentRating = "", currentStatut = "" }: FilterBarProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const t = useTranslations("filters");
@@ -54,10 +55,17 @@ export default function FilterBar({ currentRegion = "", currentCategorie = "", c
         <option value="3">{t("r30")}</option>
       </select>
 
-      {(currentRegion || currentCategorie || currentRating) && (
+      <select value={currentStatut} onChange={(e) => updateFilter("statut", e.target.value)}
+        className="px-3 py-2 rounded-lg border border-gris bg-white text-sm text-texte focus:border-terracotta focus:outline-none">
+        <option value="">{t("allStatuts")}</option>
+        <option value="certifiee">{t("certifiee")}</option>
+        <option value="noncertifiee">{t("noncertifiee")}</option>
+      </select>
+
+      {(currentRegion || currentCategorie || currentRating || currentStatut) && (
         <button onClick={() => {
           const params = new URLSearchParams(searchParams.toString());
-          ["region","categorie","note","page"].forEach(k => params.delete(k));
+          ["region","categorie","note","statut","page"].forEach(k => params.delete(k));
           router.push(`/recherche?${params.toString()}`);
         }} className="text-sm text-terracotta hover:text-terracotta-dark font-medium underline">
           {t("clearFilters")}
