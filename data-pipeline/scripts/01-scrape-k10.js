@@ -17,7 +17,7 @@ const { stringify } = require('csv-stringify/sync');
 const BASE_URL = 'http://k10.pub.msss.rtss.qc.ca/public/K10FormRecherche.asp';
 const DATA_DIR = path.join(__dirname, '..', 'data');
 
-// Codes de régions sociosanitaires du Québec (01-18)
+// Codes de régions sociosanitaires du Québec (01-18 + sous-régions CIUSSS Montréal 61-65)
 const REGIONS = {
   '01': 'Bas-Saint-Laurent',
   '02': 'Saguenay–Lac-Saint-Jean',
@@ -25,6 +25,11 @@ const REGIONS = {
   '04': 'Mauricie et Centre-du-Québec',
   '05': 'Estrie',
   '06': 'Montréal',
+  '61': 'Montréal',
+  '62': 'Montréal',
+  '63': 'Montréal',
+  '64': 'Montréal',
+  '65': 'Montréal',
   '07': 'Outaouais',
   '08': 'Abitibi-Témiscamingue',
   '09': 'Côte-Nord',

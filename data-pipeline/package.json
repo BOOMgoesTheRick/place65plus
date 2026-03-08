@@ -10,6 +10,7 @@
     "enrich": "node scripts/04-enrich-google.js",
     "import": "node scripts/05-import-supabase.js",
     "refresh": "node scripts/06-refresh-ratings.js",
+    "add-montreal": "node scripts/07-add-montreal-ciusss.js",
     "pipeline": "npm run scrape && npm run clean && npm run geocode && npm run import"
   },
   "keywords": [],
