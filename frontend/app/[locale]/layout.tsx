@@ -7,6 +7,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { getMessages, getTranslations } from "next-intl/server";
 import { routing } from "@/i18n/routing";
 import { notFound } from "next/navigation";
+import Script from "next/script";
 
 const playfair = Playfair_Display({
   variable: "--font-playfair",
@@ -71,6 +72,13 @@ export default async function LocaleLayout({
   return (
     <html lang={locale}>
       <body className={`${playfair.variable} ${dmSans.variable} antialiased`}>
+        <Script src="https://www.googletagmanager.com/gtag/js?id=G-28DX5FE02H" strategy="afterInteractive" />
+        <Script id="gtag-init" strategy="afterInteractive">{`
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-28DX5FE02H');
+        `}</Script>
         <NextIntlClientProvider messages={messages}>
           <CompareProvider>
             {children}
