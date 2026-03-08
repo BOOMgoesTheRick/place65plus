@@ -11,21 +11,13 @@ const REGIONS = [
   "Mauricie","Montérégie","Montréal","Nord-du-Québec","Outaouais",
   "Saguenay–Lac-Saint-Jean","Abitibi-Témiscamingue","Centre-du-Québec",
 ];
-const CATEGORIES: { value: string; key: "cat1" | "cat2" | "cat3" | "cat4" }[] = [
-  { value: "1", key: "cat1" },
-  { value: "2", key: "cat2" },
-  { value: "3", key: "cat3" },
-  { value: "4", key: "cat4" },
-];
-
 interface FilterBarProps {
   currentRegion?: string;
   currentCategorie?: string;
   currentRating?: string;
-  currentStatut?: string;
 }
 
-export default function FilterBar({ currentRegion = "", currentCategorie = "", currentRating = "", currentStatut = "" }: FilterBarProps) {
+export default function FilterBar({ currentRegion = "", currentCategorie = "", currentRating = "" }: FilterBarProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const t = useTranslations("filters");
@@ -55,17 +47,10 @@ export default function FilterBar({ currentRegion = "", currentCategorie = "", c
         <option value="3">{t("r30")}</option>
       </select>
 
-      <select value={currentStatut} onChange={(e) => updateFilter("statut", e.target.value)}
-        className="px-3 py-2 rounded-lg border border-gris bg-white text-sm text-texte focus:border-terracotta focus:outline-none">
-        <option value="">{t("allStatuts")}</option>
-        <option value="certifiee">{t("certifiee")}</option>
-        <option value="noncertifiee">{t("noncertifiee")}</option>
-      </select>
-
-      {(currentRegion || currentCategorie || currentRating || currentStatut) && (
+      {(currentRegion || currentCategorie || currentRating) && (
         <button onClick={() => {
           const params = new URLSearchParams(searchParams.toString());
-          ["region","categorie","note","statut","page"].forEach(k => params.delete(k));
+          ["region","categorie","note","page"].forEach(k => params.delete(k));
           router.push(`/recherche?${params.toString()}`);
         }} className="text-sm text-terracotta hover:text-terracotta-dark font-medium underline">
           {t("clearFilters")}
