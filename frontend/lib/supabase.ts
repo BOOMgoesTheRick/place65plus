@@ -26,4 +26,8 @@ export type Residence = {
   prix_min: number | null;
   prix_max: number | null;
   description: string | null;
+  langue_service: string | null;
+  fiche_reclamee: boolean;
+  tier: string | null;
+  quality_score: number | null;
 };

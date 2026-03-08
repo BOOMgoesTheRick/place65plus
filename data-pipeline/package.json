@@ -22,6 +22,7 @@
     "cheerio": "^1.2.0",
     "csv-parse": "^6.1.0",
     "csv-stringify": "^6.6.0",
-    "dotenv": "^17.3.1"
+    "dotenv": "^17.3.1",
+    "tweetsodium": "^0.0.4"
   }
 }
