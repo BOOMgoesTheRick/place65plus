@@ -61,32 +61,45 @@ export default async function CleanupPage({
   const sp = await searchParams;
   const sb = getSb();
 
-  // Build name-keyword OR clauses for DB-side pre-filtering
+  // Use two short queries to avoid URL-too-long errors with many OR clauses:
+  // 1. All non-reviewed residences WITH a website (check URL keywords in JS)
+  // 2. All non-reviewed residences matching name keywords (short OR list)
   const nameOrClauses = SUSPICIOUS_NAME_KEYWORDS.map((k) => `nom.ilike.%${k}%`).join(",");
-  const urlOrClauses = SUSPICIOUS_URL_KEYWORDS.map((k) => `site_web.ilike.%${k}%`).join(",");
 
-  const [incompleteRes, suspiciousRes] = await Promise.all([
-    // Broader criteria: no phone AND (no website OR no google)
+  const [incompleteRes, urlRes, nameRes] = await Promise.all([
     sb.from("residences")
       .select("id, nom, ville, region, telephone, site_web, note_google")
       .or("telephone.is.null,telephone.eq.")
       .order("nom", { ascending: true })
       .limit(2000),
-    // Pre-filter by keywords in DB, then refine in JS
+    // Residences with a website — filter URL keywords in JS
     sb.from("residences")
       .select("id, nom, ville, region, site_web, is_reviewed")
-      .or(`${nameOrClauses},${urlOrClauses}`)
+      .not("site_web", "is", null)
       .eq("is_reviewed", false)
       .order("nom", { ascending: true })
       .limit(2000),
+    // Residences matching name keywords (shorter OR clause)
+    sb.from("residences")
+      .select("id, nom, ville, region, site_web, is_reviewed")
+      .or(nameOrClauses)
+      .eq("is_reviewed", false)
+      .order("nom", { ascending: true })
+      .limit(500),
   ]);
 
   const incomplete = (incompleteRes.data ?? []).filter(
     (r) => !r.telephone && (!r.site_web || !r.note_google)
   );
-  const suspicious = (suspiciousRes.data ?? []).filter(
-    (r) => isSuspicious(r.site_web, r.nom)
-  );
+
+  // Merge URL-checked and name-checked rows, deduplicate by id
+  const seenIds = new Set<number>();
+  const suspiciousRaw = [...(urlRes.data ?? []), ...(nameRes.data ?? [])];
+  const suspicious = suspiciousRaw.filter((r) => {
+    if (seenIds.has(r.id)) return false;
+    seenIds.add(r.id);
+    return isSuspicious(r.site_web, r.nom);
+  }).sort((a, b) => (a.nom ?? "").localeCompare(b.nom ?? "", "fr"));
   const incompleteIds = incomplete.map((r) => r.id).join(",");
   const deletedCount = sp.deleted ? parseInt(sp.deleted) : 0;
 

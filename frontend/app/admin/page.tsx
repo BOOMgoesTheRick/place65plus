@@ -29,7 +29,6 @@ export default async function AdminDashboard() {
     { count: withGoogle },
     { count: withPhoto },
     { count: incomplete },
-    { data: regionRows },
   ] = await Promise.all([
     sb.from("residences").select("*", { count: "exact", head: true }),
     sb.from("residences").select("*", { count: "exact", head: true }).not("telephone", "is", null).neq("telephone", ""),
@@ -38,14 +37,22 @@ export default async function AdminDashboard() {
     sb.from("residences").select("*", { count: "exact", head: true }).not("photo_url", "is", null),
     sb.from("residences").select("*", { count: "exact", head: true })
       .or("telephone.is.null,telephone.eq.").is("site_web", null).is("note_google", null),
-    sb.from("residences").select("region"),
   ]);
 
-  const regionCounts: Record<string, number> = {};
-  for (const r of regionRows ?? []) {
-    const reg = r.region ?? "Inconnue";
-    regionCounts[reg] = (regionCounts[reg] ?? 0) + 1;
-  }
+  // Region counts: one COUNT query per region avoids the 1000-row Supabase cap
+  const REGIONS = [
+    "Abitibi-Témiscamingue","Bas-Saint-Laurent","Capitale-Nationale",
+    "Centre-du-Québec","Chaudière-Appalaches","Côte-Nord","Estrie",
+    "Gaspésie–Îles-de-la-Madeleine","Lanaudière","Laurentides","Laval",
+    "Mauricie","Montérégie","Montréal","Nord-du-Québec","Nunavik",
+    "Outaouais","Saguenay–Lac-Saint-Jean","Terres-Cries-de-la-Baie-James",
+  ];
+  const regionCountResults = await Promise.all(
+    REGIONS.map((r) => sb.from("residences").select("*", { count: "exact", head: true }).eq("region", r))
+  );
+  const regionCounts = Object.fromEntries(
+    REGIONS.map((r, i) => [r, regionCountResults[i].count ?? 0])
+  );
 
   const pct = (n: number | null) =>
     total ? `${Math.round(((n ?? 0) / total) * 100)}%` : "—";
