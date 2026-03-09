@@ -253,15 +253,19 @@ export default async function CleanupPage({
                       </a>
                     </td>
                     <td style={{ padding: "0.625rem 1rem" }}>
-                      <a
-                        href={r.site_web!}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{ fontSize: "0.75rem", color: "#c4593a", textDecoration: "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block", maxWidth: "22rem", transition: "color 0.15s" }}
-                        className="hover:text-terracotta-dark"
-                      >
-                        {r.site_web!.replace(/^https?:\/\//, "").replace(/\/$/, "")}
-                      </a>
+                      {r.site_web ? (
+                        <a
+                          href={r.site_web}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ fontSize: "0.75rem", color: "#c4593a", textDecoration: "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block", maxWidth: "22rem", transition: "color 0.15s" }}
+                          className="hover:text-terracotta-dark"
+                        >
+                          {r.site_web.replace(/^https?:\/\//, "").replace(/\/$/, "")}
+                        </a>
+                      ) : (
+                        <span style={{ fontSize: "0.75rem", color: "#ccc" }}>—</span>
+                      )}
                     </td>
                     <td style={{ padding: "0.625rem 1rem", color: "#888", fontSize: "0.8125rem" }}>{r.ville}</td>
                     <td style={{ padding: "0.625rem 1rem", textAlign: "right" }}>
