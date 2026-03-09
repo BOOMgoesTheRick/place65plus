@@ -105,8 +105,7 @@ async function geocodeCity(query: string): Promise<{ lat: number; lng: number } 
   return null;
 }
 
-async function getNearbyIds(cityQuery: string): Promise<number[] | null> {
-  // 1. Essayer via les villes connues dans la DB (rapide, sans API)
+async function getNearbyIds(cityQuery: string): Promise<{ ids: number[]; cityNorm: string } | null> {
   const variants = expandCityQuery(cityQuery);
   for (const variant of variants) {
     const { data } = await supabase.rpc("residences_near_city", {
@@ -114,10 +113,12 @@ async function getNearbyIds(cityQuery: string): Promise<number[] | null> {
       radius_km: 30,
     });
     if (data && data.length > 0) {
-      return (data as { id: number }[]).map((r) => r.id);
+      return {
+        ids: (data as { id: number }[]).map((r) => r.id),
+        cityNorm: normalizeQuery(variant),
+      };
     }
   }
-  // 2. Fallback : géocoder via Google Maps et chercher par coordonnées
   const coords = await geocodeCity(cityQuery);
   if (!coords) return null;
   const { data } = await supabase.rpc("residences_near_point", {
@@ -126,7 +127,10 @@ async function getNearbyIds(cityQuery: string): Promise<number[] | null> {
     radius_km: 30,
   });
   if (data && data.length > 0) {
-    return (data as { id: number }[]).map((r) => r.id);
+    return {
+      ids: (data as { id: number }[]).map((r) => r.id),
+      cityNorm: normalizeQuery(cityQuery),
+    };
   }
   return null;
 }
@@ -144,41 +148,66 @@ async function getResidences(
   services: string[],
   page: number
 ): Promise<{ data: Residence[]; count: number }> {
-  let query = supabase.from("residences").select("*", { count: "exact" });
+  const applyFilters = (q: ReturnType<typeof supabase.from>) => {
+    let fq = q;
+    if (region)    fq = fq.ilike("region_search", `%${normalizeQuery(region)}%`);
+    if (categorie) fq = fq.ilike("categorie", `%${categorie}%`);
+    if (note)      fq = fq.gte("note_google", parseFloat(note));
+    for (const svc of services) {
+      if ((VALID_SERVICES as readonly string[]).includes(svc))
+        fq = fq.eq(svc as typeof VALID_SERVICES[number], true);
+    }
+    return fq;
+  };
 
   if (q) {
-    const nearbyIds = await getNearbyIds(q);
-    if (nearbyIds) {
-      query = query.in("id", nearbyIds);
-    } else {
-      const qn = normalizeQuery(q);
-      const qnH = qn.replace(/ /g, "-");
-      const qnS = qn.replace(/-/g, " ");
-      const fields = ["nom_search", "ville_search", "region_search"];
-      const terms = [...new Set([qn, qnH, qnS])];
-      const clauses = fields.flatMap((f) => terms.map((t) => `${f}.ilike.%${t}%`));
-      query = query.or(clauses.join(","));
-    }
-  }
-  if (region) {
-    query = query.ilike("region_search", `%${normalizeQuery(region)}%`);
-  }
-  if (categorie) {
-    query = query.ilike("categorie", `%${categorie}%`);
-  }
-  if (note) {
-    query = query.gte("note_google", parseFloat(note));
-  }
-  for (const svc of services) {
-    if ((VALID_SERVICES as readonly string[]).includes(svc)) {
-      query = query.eq(svc as typeof VALID_SERVICES[number], true);
-    }
-  }
-  query = query
-    .order("quality_score", { ascending: false, nullsFirst: false })
-    .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
+    const nearby = await getNearbyIds(q);
+    if (nearby) {
+      // Fetch all nearby (already radius-filtered) with common filters
+      const { data: all, error } = await applyFilters(
+        supabase.from("residences").select("*").in("id", nearby.ids)
+      ).order("quality_score", { ascending: false, nullsFirst: false });
 
-  const { data, count, error } = await query;
+      if (error) console.error("Supabase error:", error);
+      const rows = all ?? [];
+
+      // Sort: exact city first, then by quality_score
+      rows.sort((a, b) => {
+        const aCity = normalizeQuery(a.ville || "");
+        const bCity = normalizeQuery(b.ville || "");
+        const aExact = aCity.includes(nearby.cityNorm) ? 0 : 1;
+        const bExact = bCity.includes(nearby.cityNorm) ? 0 : 1;
+        if (aExact !== bExact) return aExact - bExact;
+        return (b.quality_score ?? 0) - (a.quality_score ?? 0);
+      });
+
+      const start = (page - 1) * PAGE_SIZE;
+      return { data: rows.slice(start, start + PAGE_SIZE), count: rows.length };
+    }
+
+    // Text fallback (residence name / region)
+    const qn = normalizeQuery(q);
+    const qnH = qn.replace(/ /g, "-");
+    const qnS = qn.replace(/-/g, " ");
+    const fields = ["nom_search", "ville_search", "region_search"];
+    const terms = [...new Set([qn, qnH, qnS])];
+    const clauses = fields.flatMap((f) => terms.map((t) => `${f}.ilike.%${t}%`));
+    let query = applyFilters(
+      supabase.from("residences").select("*", { count: "exact" }).or(clauses.join(","))
+    ).order("quality_score", { ascending: false, nullsFirst: false })
+     .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
+
+    const { data, count, error } = await query;
+    if (error) console.error("Supabase error:", error);
+    return { data: data ?? [], count: count ?? 0 };
+  }
+
+  // No text query — just apply filters
+  const { data, count, error } = await applyFilters(
+    supabase.from("residences").select("*", { count: "exact" })
+  ).order("quality_score", { ascending: false, nullsFirst: false })
+   .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
+
   if (error) console.error("Supabase error:", error);
   return { data: data ?? [], count: count ?? 0 };
 }
