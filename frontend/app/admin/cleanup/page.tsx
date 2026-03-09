@@ -73,17 +73,16 @@ export default async function CleanupPage({
       .order("nom", { ascending: true })
       .limit(2000),
     // Residences with a website — filter URL keywords in JS
+    // is_reviewed filtered in JS (avoids PostgREST schema cache issues)
     sb.from("residences")
       .select("id, nom, ville, region, site_web, is_reviewed")
       .not("site_web", "is", null)
-      .eq("is_reviewed", false)
       .order("nom", { ascending: true })
       .limit(2000),
-    // Residences matching name keywords (shorter OR clause)
+    // Residences matching name keywords
     sb.from("residences")
       .select("id, nom, ville, region, site_web, is_reviewed")
       .or(nameOrClauses)
-      .eq("is_reviewed", false)
       .order("nom", { ascending: true })
       .limit(500),
   ]);
@@ -98,6 +97,7 @@ export default async function CleanupPage({
   const suspicious = suspiciousRaw.filter((r) => {
     if (seenIds.has(r.id)) return false;
     seenIds.add(r.id);
+    if (r.is_reviewed === true) return false;
     return isSuspicious(r.site_web, r.nom);
   }).sort((a, b) => (a.nom ?? "").localeCompare(b.nom ?? "", "fr"));
   const incompleteIds = incomplete.map((r) => r.id).join(",");
