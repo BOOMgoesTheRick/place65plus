@@ -68,7 +68,6 @@ export default async function ResidencesPage({ searchParams }: Props) {
 
   query = query.order("id", { ascending: false });
 
-  // Fetch more when suspicious filter is on (need to filter in JS too)
   const fetchLimit = suspiciousOnly ? 2000 : PAGE_SIZE;
   const fetchOffset = suspiciousOnly ? 0 : (page - 1) * PAGE_SIZE;
 
@@ -104,130 +103,192 @@ export default async function ResidencesPage({ searchParams }: Props) {
   };
 
   const returnTo = buildUrl(page);
+  const hasFilters = q || region || noPhone || noWebsite || noGoogle || suspiciousOnly;
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      {/* Header */}
+      <div className="flex items-start justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Résidences</h1>
-          <p className="text-sm text-gray-400 mt-0.5">{total.toLocaleString("fr-CA")} résultat{total !== 1 ? "s" : ""}</p>
+          <h1 style={{ fontFamily: "var(--font-playfair), Georgia, serif", fontSize: "1.75rem", fontWeight: 700, color: "#1C2B4A", letterSpacing: "-0.02em", lineHeight: 1.2 }}>
+            Résidences
+          </h1>
+          <p style={{ color: "#888", fontSize: "0.875rem", marginTop: "4px" }}>
+            {total.toLocaleString("fr-CA")} résultat{total !== 1 ? "s" : ""}
+          </p>
         </div>
       </div>
 
+      {/* Toasts */}
       {sp.deleted && (
-        <div className="bg-green-50 border border-green-200 text-green-700 text-sm rounded-xl px-4 py-3 mb-4">
+        <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", color: "#15803d", fontSize: "0.8125rem", borderRadius: "0.75rem", padding: "0.75rem 1rem", marginBottom: "1rem" }}>
           Résidence #{sp.deleted} supprimée.
         </div>
       )}
       {sp.updated && (
-        <div className="bg-blue-50 border border-blue-200 text-blue-700 text-sm rounded-xl px-4 py-3 mb-4">
+        <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", color: "#1d4ed8", fontSize: "0.8125rem", borderRadius: "0.75rem", padding: "0.75rem 1rem", marginBottom: "1rem" }}>
           Résidence #{sp.updated} mise à jour.
         </div>
       )}
 
       {/* Filters */}
-      <form method="get" className="bg-white rounded-xl border border-gray-200 p-4 mb-4 flex flex-wrap gap-3 items-end">
-        <div className="flex-1 min-w-48">
-          <label className="block text-xs text-gray-500 mb-1">Nom ou ville</label>
-          <input name="q" defaultValue={q} placeholder="Rechercher..."
-            className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-gray-400" />
+      <form
+        method="get"
+        style={{ background: "#fff", border: "1px solid rgba(0,0,0,0.08)", borderRadius: "0.875rem", padding: "1rem 1.25rem", marginBottom: "1rem", display: "flex", flexWrap: "wrap", gap: "0.75rem", alignItems: "flex-end", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}
+      >
+        <div style={{ flex: 1, minWidth: "200px" }}>
+          <label style={{ display: "block", fontSize: "0.65rem", color: "#aaa", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: "6px" }}>
+            Nom ou ville
+          </label>
+          <input
+            name="q"
+            defaultValue={q}
+            placeholder="Rechercher..."
+            style={{ width: "100%", padding: "0.5rem 0.75rem", borderRadius: "0.5rem", border: "1px solid rgba(0,0,0,0.12)", fontSize: "0.875rem", outline: "none", boxSizing: "border-box", transition: "border-color 0.15s" }}
+            className="focus:border-marine/40"
+          />
         </div>
         <div>
-          <label className="block text-xs text-gray-500 mb-1">Région</label>
-          <select name="region" defaultValue={region}
-            className="px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-gray-400 bg-white">
+          <label style={{ display: "block", fontSize: "0.65rem", color: "#aaa", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: "6px" }}>
+            Région
+          </label>
+          <select
+            name="region"
+            defaultValue={region}
+            style={{ padding: "0.5rem 0.75rem", borderRadius: "0.5rem", border: "1px solid rgba(0,0,0,0.12)", fontSize: "0.875rem", background: "#fff", outline: "none", cursor: "pointer" }}
+          >
             <option value="">Toutes</option>
             {REGIONS.map((r) => <option key={r} value={r}>{r}</option>)}
           </select>
         </div>
-        <div className="flex flex-wrap gap-3 items-center">
+
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.625rem", alignItems: "center" }}>
           {[
-            { name: "no_phone", label: "Sans tél.", checked: noPhone },
-            { name: "no_website", label: "Sans site", checked: noWebsite },
-            { name: "no_google", label: "Sans Google", checked: noGoogle },
-            { name: "suspicious", label: "⚠️ Suspects", checked: suspiciousOnly },
+            { name: "no_phone",  label: "Sans tél.",    checked: noPhone },
+            { name: "no_website",label: "Sans site",    checked: noWebsite },
+            { name: "no_google", label: "Sans Google",  checked: noGoogle },
+            { name: "suspicious",label: "⚠ Suspects",   checked: suspiciousOnly },
           ].map(({ name, label, checked }) => (
-            <label key={name} className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-              <input type="checkbox" name={name} value="1" defaultChecked={checked}
-                className="rounded" />
+            <label
+              key={name}
+              style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "0.8125rem", color: "#555", cursor: "pointer", userSelect: "none" }}
+            >
+              <input type="checkbox" name={name} value="1" defaultChecked={checked} style={{ accentColor: "#1C2B4A", cursor: "pointer" }} />
               {label}
             </label>
           ))}
         </div>
-        <button type="submit"
-          className="px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-700 transition-colors">
-          Filtrer
-        </button>
-        {(q || region || noPhone || noWebsite || noGoogle || suspiciousOnly) && (
-          <a href="/admin/residences" className="px-4 py-2 border border-gray-200 text-gray-600 text-sm rounded-lg hover:border-gray-400 transition-colors">
-            Réinitialiser
-          </a>
-        )}
+
+        <div style={{ display: "flex", gap: "0.5rem" }}>
+          <button
+            type="submit"
+            style={{ padding: "0.5rem 1rem", background: "#1C2B4A", color: "#fff", fontSize: "0.8125rem", fontWeight: 600, borderRadius: "0.5rem", border: "none", cursor: "pointer", transition: "background 0.15s" }}
+            className="hover:bg-marine-light"
+          >
+            Filtrer
+          </button>
+          {hasFilters && (
+            <a
+              href="/admin/residences"
+              style={{ padding: "0.5rem 1rem", border: "1px solid rgba(0,0,0,0.12)", color: "#666", fontSize: "0.8125rem", borderRadius: "0.5rem", textDecoration: "none", transition: "border-color 0.15s" }}
+              className="hover:border-gray-400"
+            >
+              Réinitialiser
+            </a>
+          )}
+        </div>
       </form>
 
       {/* Table */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50 border-b border-gray-200">
-            <tr>
-              <th className="text-left px-4 py-3 text-gray-500 font-medium w-14">ID</th>
-              <th className="text-left px-4 py-3 text-gray-500 font-medium">Nom</th>
-              <th className="text-left px-4 py-3 text-gray-500 font-medium w-36">Ville</th>
-              <th className="text-left px-4 py-3 text-gray-500 font-medium w-32">Région</th>
-              <th className="text-center px-3 py-3 text-gray-500 font-medium w-10">📞</th>
-              <th className="text-center px-3 py-3 text-gray-500 font-medium w-10">🌐</th>
-              <th className="text-center px-3 py-3 text-gray-500 font-medium w-10">⭐</th>
-              <th className="text-center px-3 py-3 text-gray-500 font-medium w-10">📷</th>
-              <th className="px-4 py-3 w-24"></th>
+      <div style={{ background: "#fff", borderRadius: "0.875rem", border: "1px solid rgba(0,0,0,0.08)", overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.875rem" }}>
+          <thead>
+            <tr style={{ background: "#f8f7f4", borderBottom: "1px solid rgba(0,0,0,0.07)" }}>
+              <th style={{ textAlign: "left", padding: "0.75rem 1rem", color: "#888", fontWeight: 600, fontSize: "0.7rem", letterSpacing: "0.08em", textTransform: "uppercase", width: "3.5rem" }}>ID</th>
+              <th style={{ textAlign: "left", padding: "0.75rem 1rem", color: "#888", fontWeight: 600, fontSize: "0.7rem", letterSpacing: "0.08em", textTransform: "uppercase" }}>Nom</th>
+              <th style={{ textAlign: "left", padding: "0.75rem 1rem", color: "#888", fontWeight: 600, fontSize: "0.7rem", letterSpacing: "0.08em", textTransform: "uppercase", width: "8rem" }}>Ville</th>
+              <th style={{ textAlign: "left", padding: "0.75rem 1rem", color: "#888", fontWeight: 600, fontSize: "0.7rem", letterSpacing: "0.08em", textTransform: "uppercase", width: "8.5rem" }}>Région</th>
+              <th style={{ textAlign: "center", padding: "0.5rem 0.625rem", color: "#888", fontWeight: 600, fontSize: "0.75rem", width: "2.5rem" }} title="Téléphone">📞</th>
+              <th style={{ textAlign: "center", padding: "0.5rem 0.625rem", color: "#888", fontWeight: 600, fontSize: "0.75rem", width: "2.5rem" }} title="Site web">🌐</th>
+              <th style={{ textAlign: "center", padding: "0.5rem 0.625rem", color: "#888", fontWeight: 600, fontSize: "0.75rem", width: "2.5rem" }} title="Note Google">⭐</th>
+              <th style={{ textAlign: "center", padding: "0.5rem 0.625rem", color: "#888", fontWeight: 600, fontSize: "0.75rem", width: "2.5rem" }} title="Photo">📷</th>
+              <th style={{ padding: "0.75rem 1rem", width: "6rem" }}></th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
-            {rows.map((r) => {
+          <tbody>
+            {rows.map((r, i) => {
               const suspicious = isSuspicious(r.site_web);
               return (
-                <tr key={r.id} className={suspicious ? "bg-orange-50" : ""}>
-                  <td className="px-4 py-2.5 text-gray-400 text-xs">#{r.id}</td>
-                  <td className="px-4 py-2.5">
-                    <div className="flex items-center gap-2">
-                      <a href={`/admin/residence/${r.id}`}
-                        className="font-medium text-gray-800 hover:text-blue-600 transition-colors line-clamp-1">
+                <tr
+                  key={r.id}
+                  style={{
+                    borderTop: i === 0 ? "none" : "1px solid rgba(0,0,0,0.045)",
+                    background: suspicious ? "#fff8f5" : "transparent",
+                    transition: "background 0.12s",
+                  }}
+                  className="hover:bg-gray-50"
+                >
+                  <td style={{ padding: "0.625rem 1rem", color: "#bbb", fontSize: "0.7rem", fontFamily: "monospace" }}>
+                    #{r.id}
+                  </td>
+                  <td style={{ padding: "0.625rem 1rem" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                      <a
+                        href={`/admin/residence/${r.id}`}
+                        style={{ fontWeight: 500, color: "#1a1a1a", textDecoration: "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "20rem", transition: "color 0.15s" }}
+                        className="hover:text-marine"
+                      >
                         {r.nom}
                       </a>
-                      {suspicious && <span className="text-xs text-orange-500 shrink-0">⚠️</span>}
+                      {suspicious && (
+                        <span style={{ fontSize: "0.6rem", background: "#fff0eb", color: "#c4593a", fontWeight: 700, padding: "1px 6px", borderRadius: "100px", letterSpacing: "0.05em", textTransform: "uppercase", flexShrink: 0 }}>
+                          Suspect
+                        </span>
+                      )}
                     </div>
                     {r.site_web && (
-                      <a href={r.site_web} target="_blank" rel="noopener noreferrer"
-                        className="text-xs text-gray-400 hover:text-blue-500 truncate block max-w-xs transition-colors">
+                      <a
+                        href={r.site_web}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ fontSize: "0.7rem", color: suspicious ? "#c4593a" : "#aaa", textDecoration: "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block", maxWidth: "20rem", transition: "color 0.15s" }}
+                        className="hover:text-blue-500"
+                      >
                         {r.site_web.replace(/^https?:\/\//, "").replace(/\/$/, "")}
                       </a>
                     )}
                   </td>
-                  <td className="px-4 py-2.5 text-gray-600 text-xs">{r.ville}</td>
-                  <td className="px-4 py-2.5 text-gray-500 text-xs truncate max-w-[8rem]">{r.region}</td>
-                  <td className="px-3 py-2.5 text-center">
-                    <span className={r.telephone ? "text-green-500" : "text-gray-200"}>●</span>
+                  <td style={{ padding: "0.625rem 1rem", color: "#666", fontSize: "0.75rem" }}>{r.ville}</td>
+                  <td style={{ padding: "0.625rem 1rem", color: "#888", fontSize: "0.75rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "8.5rem" }}>{r.region}</td>
+                  <td style={{ padding: "0.625rem", textAlign: "center" }}>
+                    <span style={{ display: "inline-block", width: "7px", height: "7px", borderRadius: "50%", background: r.telephone ? "#16a34a" : "#e5e7eb" }} />
                   </td>
-                  <td className="px-3 py-2.5 text-center">
-                    <span className={r.site_web ? "text-green-500" : "text-gray-200"}>●</span>
+                  <td style={{ padding: "0.625rem", textAlign: "center" }}>
+                    <span style={{ display: "inline-block", width: "7px", height: "7px", borderRadius: "50%", background: r.site_web ? "#2563eb" : "#e5e7eb" }} />
                   </td>
-                  <td className="px-3 py-2.5 text-center">
-                    <span className={r.note_google ? "text-amber-400" : "text-gray-200"}>●</span>
+                  <td style={{ padding: "0.625rem", textAlign: "center" }}>
+                    <span style={{ display: "inline-block", width: "7px", height: "7px", borderRadius: "50%", background: r.note_google ? "#d97706" : "#e5e7eb" }} />
                   </td>
-                  <td className="px-3 py-2.5 text-center">
-                    <span className={r.photo_url ? "text-blue-400" : "text-gray-200"}>●</span>
+                  <td style={{ padding: "0.625rem", textAlign: "center" }}>
+                    <span style={{ display: "inline-block", width: "7px", height: "7px", borderRadius: "50%", background: r.photo_url ? "#7c3aed" : "#e5e7eb" }} />
                   </td>
-                  <td className="px-4 py-2.5 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <a href={`/admin/residence/${r.id}`}
-                        className="text-xs text-blue-500 hover:text-blue-700 font-medium transition-colors">
+                  <td style={{ padding: "0.625rem 1rem", textAlign: "right" }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "0.5rem" }}>
+                      <a
+                        href={`/admin/residence/${r.id}`}
+                        style={{ fontSize: "0.75rem", color: "#1C2B4A", fontWeight: 600, textDecoration: "none", transition: "color 0.15s" }}
+                        className="hover:text-terracotta"
+                      >
                         Éditer
                       </a>
                       <form action={deleteResidenceAction}>
                         <input type="hidden" name="id" value={r.id} />
                         <input type="hidden" name="returnTo" value={returnTo} />
-                        <button type="submit"
-                          className="text-xs text-red-400 hover:text-red-600 font-medium border border-red-100 hover:border-red-300 rounded px-2 py-0.5 transition-colors"
-                          onClick={undefined}>
+                        <button
+                          type="submit"
+                          style={{ fontSize: "0.7rem", color: "#f87171", fontWeight: 500, border: "1px solid #fee2e2", borderRadius: "0.375rem", padding: "2px 8px", background: "transparent", cursor: "pointer", transition: "all 0.15s" }}
+                          className="hover:text-red-600 hover:border-red-300 hover:bg-red-50"
+                        >
                           Suppr.
                         </button>
                       </form>
@@ -238,7 +299,9 @@ export default async function ResidencesPage({ searchParams }: Props) {
             })}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={9} className="px-4 py-12 text-center text-gray-400">Aucun résultat</td>
+                <td colSpan={9} style={{ padding: "3rem 1rem", textAlign: "center", color: "#ccc", fontSize: "0.875rem" }}>
+                  Aucun résultat
+                </td>
               </tr>
             )}
           </tbody>
@@ -247,15 +310,25 @@ export default async function ResidencesPage({ searchParams }: Props) {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2 mt-6">
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem", marginTop: "1.5rem" }}>
           {page > 1 && (
-            <a href={buildUrl(page - 1)} className="px-4 py-2 rounded-lg border border-gray-200 bg-white text-sm hover:border-gray-400 transition-colors">
+            <a
+              href={buildUrl(page - 1)}
+              style={{ padding: "0.5rem 1rem", borderRadius: "0.5rem", border: "1px solid rgba(0,0,0,0.12)", background: "#fff", fontSize: "0.875rem", textDecoration: "none", color: "#444", transition: "border-color 0.15s" }}
+              className="hover:border-gray-400"
+            >
               ← Précédent
             </a>
           )}
-          <span className="text-sm text-gray-500">Page {page} / {totalPages}</span>
+          <span style={{ fontSize: "0.8125rem", color: "#999", padding: "0 0.5rem" }}>
+            Page {page} / {totalPages}
+          </span>
           {page < totalPages && (
-            <a href={buildUrl(page + 1)} className="px-4 py-2 rounded-lg border border-gray-200 bg-white text-sm hover:border-gray-400 transition-colors">
+            <a
+              href={buildUrl(page + 1)}
+              style={{ padding: "0.5rem 1rem", borderRadius: "0.5rem", border: "1px solid rgba(0,0,0,0.12)", background: "#fff", fontSize: "0.875rem", textDecoration: "none", color: "#444", transition: "border-color 0.15s" }}
+              className="hover:border-gray-400"
+            >
               Suivant →
             </a>
           )}

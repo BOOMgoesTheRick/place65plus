@@ -16,6 +16,15 @@ const REGIONS = [
   "Côte-Nord","Centre-du-Québec","Nord-du-Québec","Terres-Cries-de-la-Baie-James","Nunavik",
 ];
 
+const statCards = [
+  { key: "total",    label: "Total résidences", icon: "🏠", accent: "#1C2B4A" },
+  { key: "phone",    label: "Avec téléphone",   icon: "📞", accent: "#16a34a" },
+  { key: "website",  label: "Avec site web",    icon: "🌐", accent: "#2563eb" },
+  { key: "google",   label: "Données Google",   icon: "⭐", accent: "#d97706" },
+  { key: "photo",    label: "Avec photo",       icon: "📷", accent: "#7c3aed" },
+  { key: "incomplete",label: "Incomplètes",     icon: "⚠️", accent: "#dc2626" },
+];
+
 export default async function AdminDashboard() {
   await requireAuth();
   const sb = getSb();
@@ -48,61 +57,114 @@ export default async function AdminDashboard() {
   const pct = (n: number | null) =>
     total ? `${Math.round(((n ?? 0) / total) * 100)}%` : "—";
 
-  const stats = [
-    { label: "Total résidences", value: total?.toLocaleString("fr-CA") ?? "—", color: "bg-blue-50 text-blue-700" },
-    { label: "Avec téléphone", value: withPhone?.toLocaleString("fr-CA") ?? "—", sub: pct(withPhone), color: "bg-green-50 text-green-700" },
-    { label: "Avec site web", value: withWebsite?.toLocaleString("fr-CA") ?? "—", sub: pct(withWebsite), color: "bg-green-50 text-green-700" },
-    { label: "Avec Google", value: withGoogle?.toLocaleString("fr-CA") ?? "—", sub: pct(withGoogle), color: "bg-amber-50 text-amber-700" },
-    { label: "Avec photo", value: withPhoto?.toLocaleString("fr-CA") ?? "—", sub: pct(withPhoto), color: "bg-amber-50 text-amber-700" },
-    { label: "Incomplètes", value: incomplete?.toLocaleString("fr-CA") ?? "—", sub: pct(incomplete), color: "bg-red-50 text-red-700" },
-  ];
+  const values: Record<string, string> = {
+    total:      total?.toLocaleString("fr-CA") ?? "—",
+    phone:      withPhone?.toLocaleString("fr-CA") ?? "—",
+    website:    withWebsite?.toLocaleString("fr-CA") ?? "—",
+    google:     withGoogle?.toLocaleString("fr-CA") ?? "—",
+    photo:      withPhoto?.toLocaleString("fr-CA") ?? "—",
+    incomplete: incomplete?.toLocaleString("fr-CA") ?? "—",
+  };
+
+  const subs: Record<string, string> = {
+    phone:      pct(withPhone),
+    website:    pct(withWebsite),
+    google:     pct(withGoogle),
+    photo:      pct(withPhoto),
+    incomplete: pct(incomplete),
+  };
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-8">
+      {/* Page header */}
+      <div className="flex items-start justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-sm text-gray-400 mt-0.5">Vue d'ensemble de la base de données</p>
+          <h1
+            style={{ fontFamily: "var(--font-playfair), Georgia, serif", fontSize: "1.75rem", fontWeight: 700, color: "#1C2B4A", letterSpacing: "-0.02em", lineHeight: 1.2 }}
+          >
+            Dashboard
+          </h1>
+          <p style={{ color: "#888", fontSize: "0.875rem", marginTop: "4px" }}>Vue d'ensemble de la base de données</p>
         </div>
         <div className="flex gap-3">
-          <a href="/admin/residences" className="px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-700 transition-colors">
+          <a
+            href="/admin/residences"
+            style={{ background: "#1C2B4A", color: "#fff", fontSize: "0.8125rem", fontWeight: 600, padding: "0.5rem 1rem", borderRadius: "0.625rem", textDecoration: "none", transition: "background 0.15s" }}
+            className="hover:bg-marine-light"
+          >
             Gérer les résidences →
           </a>
-          <a href="/admin/cleanup" className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors">
+          <a
+            href="/admin/cleanup"
+            style={{ background: "#C4593A", color: "#fff", fontSize: "0.8125rem", fontWeight: 600, padding: "0.5rem 1rem", borderRadius: "0.625rem", textDecoration: "none", transition: "background 0.15s" }}
+            className="hover:bg-terracotta-dark"
+          >
             Nettoyage →
           </a>
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-10">
-        {stats.map((s) => (
-          <div key={s.label} className={`rounded-xl p-4 ${s.color}`}>
-            <p className="text-2xl font-bold">{s.value}</p>
-            {s.sub && <p className="text-xs opacity-70">{s.sub}</p>}
-            <p className="text-xs font-medium mt-1 opacity-80">{s.label}</p>
+      {/* Stat cards */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-8">
+        {statCards.map(({ key, label, icon, accent }) => (
+          <div
+            key={key}
+            style={{
+              background: "#fff",
+              borderRadius: "0.875rem",
+              padding: "1.125rem 1rem",
+              borderLeft: `3px solid ${accent}`,
+              boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+            }}
+          >
+            <div style={{ fontSize: "1.25rem", marginBottom: "8px", lineHeight: 1 }}>{icon}</div>
+            <p style={{ fontSize: "1.5rem", fontWeight: 700, color: "#1a1a1a", letterSpacing: "-0.02em", lineHeight: 1 }}>
+              {values[key]}
+            </p>
+            {subs[key] && (
+              <p style={{ fontSize: "0.7rem", color: accent, fontWeight: 600, marginTop: "2px", opacity: 0.8 }}>
+                {subs[key]}
+              </p>
+            )}
+            <p style={{ fontSize: "0.7rem", color: "#999", marginTop: "6px", fontWeight: 500 }}>{label}</p>
           </div>
         ))}
       </div>
 
       {/* Region breakdown */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-100">
-          <h2 className="font-semibold text-gray-800">Résidences par région</h2>
+      <div style={{ background: "#fff", borderRadius: "0.875rem", border: "1px solid rgba(0,0,0,0.07)", overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
+        <div style={{ padding: "1.25rem 1.5rem", borderBottom: "1px solid rgba(0,0,0,0.06)" }}>
+          <h2 style={{ fontWeight: 600, color: "#1a1a1a", fontSize: "0.9375rem" }}>Résidences par région</h2>
         </div>
-        <div className="divide-y divide-gray-50">
-          {REGIONS.filter(r => regionCounts[r]).map((region) => {
+        <div>
+          {REGIONS.filter((r) => regionCounts[r]).map((region, i) => {
             const count = regionCounts[region] ?? 0;
             const pctRegion = total ? (count / total) * 100 : 0;
             return (
-              <div key={region} className="px-6 py-3 flex items-center gap-4">
-                <span className="text-sm text-gray-700 w-64 truncate">{region}</span>
-                <div className="flex-1 bg-gray-100 rounded-full h-2">
-                  <div className="bg-gray-400 h-2 rounded-full" style={{ width: `${pctRegion}%` }} />
+              <div
+                key={region}
+                style={{
+                  padding: "0.625rem 1.5rem",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "1rem",
+                  borderTop: i === 0 ? "none" : "1px solid rgba(0,0,0,0.04)",
+                  transition: "background 0.15s",
+                }}
+                className="hover:bg-gray-50"
+              >
+                <span style={{ fontSize: "0.8125rem", color: "#444", minWidth: "16rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {region}
+                </span>
+                <div style={{ flex: 1, background: "#f0ede8", borderRadius: "100px", height: "6px", overflow: "hidden" }}>
+                  <div
+                    style={{ background: "#1C2B4A", height: "6px", borderRadius: "100px", width: `${pctRegion}%`, transition: "width 0.5s ease" }}
+                  />
                 </div>
                 <a
                   href={`/admin/residences?region=${encodeURIComponent(region)}`}
-                  className="text-sm font-medium text-gray-600 hover:text-blue-600 w-16 text-right transition-colors"
+                  style={{ fontSize: "0.8125rem", fontWeight: 600, color: "#1C2B4A", textDecoration: "none", minWidth: "3rem", textAlign: "right", transition: "color 0.15s" }}
+                  className="hover:text-terracotta"
                 >
                   {count}
                 </a>
