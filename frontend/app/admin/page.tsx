@@ -8,13 +8,6 @@ function getSb() {
   );
 }
 
-const REGIONS = [
-  "Montérégie","Montréal","Chaudière-Appalaches","Capitale-Nationale",
-  "Laurentides","Lanaudière","Mauricie","Estrie","Outaouais",
-  "Laval","Saguenay–Lac-Saint-Jean","Bas-Saint-Laurent",
-  "Abitibi-Témiscamingue","Gaspésie–Îles-de-la-Madeleine",
-  "Côte-Nord","Centre-du-Québec","Nord-du-Québec","Terres-Cries-de-la-Baie-James","Nunavik",
-];
 
 const statCards = [
   { key: "total",    label: "Total résidences", icon: "🏠", accent: "#1C2B4A" },
@@ -137,8 +130,7 @@ export default async function AdminDashboard() {
           <h2 style={{ fontWeight: 600, color: "#1a1a1a", fontSize: "0.9375rem" }}>Résidences par région</h2>
         </div>
         <div>
-          {REGIONS.filter((r) => regionCounts[r]).map((region, i) => {
-            const count = regionCounts[region] ?? 0;
+          {Object.entries(regionCounts).sort((a, b) => b[1] - a[1]).map(([region, count], i) => {
             const pctRegion = total ? (count / total) * 100 : 0;
             return (
               <div
