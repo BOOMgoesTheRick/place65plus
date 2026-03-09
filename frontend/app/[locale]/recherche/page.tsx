@@ -173,7 +173,7 @@ async function getResidences(
       const rows = all ?? [];
 
       // Sort: exact city first, then by quality_score
-      rows.sort((a, b) => {
+      rows.sort((a: Residence, b: Residence) => {
         const aCity = normalizeQuery(a.ville || "");
         const bCity = normalizeQuery(b.ville || "");
         const aExact = aCity.includes(nearby.cityNorm) ? 0 : 1;
