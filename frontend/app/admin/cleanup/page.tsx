@@ -1,5 +1,5 @@
 import { requireAuth } from "@/lib/admin-session";
-import { deleteResidenceAction, bulkDeleteAction } from "@/app/admin/actions";
+import { deleteResidenceAction, bulkDeleteAction, markReviewedAction } from "@/app/admin/actions";
 import { createClient } from "@supabase/supabase-js";
 
 function getSb() {
@@ -46,25 +46,30 @@ export default async function CleanupPage({
   const sb = getSb();
 
   const [{ data: incompleteRows }, { data: allWithWebsite }] = await Promise.all([
+    // Broader criteria: no phone, OR (no website AND no google)
     sb.from("residences")
-      .select("id, nom, ville, region")
+      .select("id, nom, ville, region, telephone, site_web, note_google")
       .or("telephone.is.null,telephone.eq.")
-      .is("site_web", null)
-      .is("note_google", null)
-      .order("id", { ascending: false }),
+      .order("nom", { ascending: true }),
     sb.from("residences")
-      .select("id, nom, ville, region, site_web")
+      .select("id, nom, ville, region, site_web, is_reviewed")
       .not("site_web", "is", null)
-      .order("id", { ascending: false }),
+      .order("nom", { ascending: true }),
   ]);
 
-  const incomplete = incompleteRows ?? [];
-  const suspicious = (allWithWebsite ?? []).filter((r) => isSuspicious(r.site_web));
+  const incomplete = (incompleteRows ?? []).filter(
+    (r) => !r.telephone && (!r.site_web || !r.note_google)
+  );
+  const suspicious = (allWithWebsite ?? []).filter(
+    (r) => !r.is_reviewed && isSuspicious(r.site_web)
+  );
   const incompleteIds = incomplete.map((r) => r.id).join(",");
   const deletedCount = sp.deleted ? parseInt(sp.deleted) : 0;
 
+  const returnTo = "/admin/cleanup";
+
   return (
-    <div style={{ maxWidth: "900px" }}>
+    <div style={{ maxWidth: "960px" }}>
       {/* Header */}
       <div style={{ marginBottom: "2rem" }}>
         <h1 style={{ fontFamily: "var(--font-playfair), Georgia, serif", fontSize: "1.75rem", fontWeight: 700, color: "#1C2B4A", letterSpacing: "-0.02em", lineHeight: 1.2 }}>
@@ -89,7 +94,7 @@ export default async function CleanupPage({
                 {incomplete.length}
               </span>
             </div>
-            <p style={{ color: "#aaa", fontSize: "0.8125rem" }}>Sans téléphone · sans site web · sans données Google</p>
+            <p style={{ color: "#aaa", fontSize: "0.8125rem" }}>Sans téléphone · et sans site web ou sans données Google</p>
           </div>
           {incomplete.length > 0 && (
             <form action={bulkDeleteAction}>
@@ -117,7 +122,10 @@ export default async function CleanupPage({
                   <th style={{ ...thStyle, width: "3.5rem" }}>ID</th>
                   <th style={thStyle}>Nom</th>
                   <th style={{ ...thStyle, width: "8rem" }}>Ville</th>
-                  <th style={{ ...thStyle, width: "10rem" }}>Région</th>
+                  <th style={{ ...thStyle, width: "9rem" }}>Région</th>
+                  <th style={{ ...thStyle, textAlign: "center" as const, width: "3rem" }}>📞</th>
+                  <th style={{ ...thStyle, textAlign: "center" as const, width: "3rem" }}>🌐</th>
+                  <th style={{ ...thStyle, textAlign: "center" as const, width: "3rem" }}>⭐</th>
                   <th style={{ ...thStyle, width: "5rem", textAlign: "right" as const }}></th>
                 </tr>
               </thead>
@@ -136,10 +144,19 @@ export default async function CleanupPage({
                     </td>
                     <td style={{ padding: "0.625rem 1rem", color: "#888", fontSize: "0.8125rem" }}>{r.ville}</td>
                     <td style={{ padding: "0.625rem 1rem", color: "#aaa", fontSize: "0.75rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.region}</td>
+                    <td style={{ padding: "0.625rem", textAlign: "center" }}>
+                      <span style={{ display: "inline-block", width: "7px", height: "7px", borderRadius: "50%", background: r.telephone ? "#16a34a" : "#e5e7eb" }} />
+                    </td>
+                    <td style={{ padding: "0.625rem", textAlign: "center" }}>
+                      <span style={{ display: "inline-block", width: "7px", height: "7px", borderRadius: "50%", background: r.site_web ? "#2563eb" : "#e5e7eb" }} />
+                    </td>
+                    <td style={{ padding: "0.625rem", textAlign: "center" }}>
+                      <span style={{ display: "inline-block", width: "7px", height: "7px", borderRadius: "50%", background: r.note_google ? "#d97706" : "#e5e7eb" }} />
+                    </td>
                     <td style={{ padding: "0.625rem 1rem", textAlign: "right" }}>
                       <form action={deleteResidenceAction}>
                         <input type="hidden" name="id" value={r.id} />
-                        <input type="hidden" name="returnTo" value="/admin/cleanup" />
+                        <input type="hidden" name="returnTo" value={returnTo} />
                         <button
                           type="submit"
                           style={{ fontSize: "0.7rem", color: "#f87171", fontWeight: 500, border: "1px solid #fee2e2", borderRadius: "0.375rem", padding: "2px 8px", background: "transparent", cursor: "pointer", transition: "all 0.15s" }}
@@ -166,7 +183,7 @@ export default async function CleanupPage({
               {suspicious.length}
             </span>
           </div>
-          <p style={{ color: "#aaa", fontSize: "0.8125rem" }}>Sites web avec mots-clés immobiliers dans le domaine</p>
+          <p style={{ color: "#aaa", fontSize: "0.8125rem" }}>Sites web avec mots-clés immobiliers · cliquer "Légitimer" pour masquer définitivement</p>
         </div>
 
         {suspicious.length === 0 ? (
@@ -182,7 +199,7 @@ export default async function CleanupPage({
                   <th style={thStyle}>Nom</th>
                   <th style={thStyle}>Site web</th>
                   <th style={{ ...thStyle, width: "8rem" }}>Ville</th>
-                  <th style={{ ...thStyle, width: "6.5rem", textAlign: "right" as const }}></th>
+                  <th style={{ ...thStyle, width: "9rem", textAlign: "right" as const }}></th>
                 </tr>
               </thead>
               <tbody>
@@ -203,7 +220,7 @@ export default async function CleanupPage({
                         href={r.site_web!}
                         target="_blank"
                         rel="noopener noreferrer"
-                        style={{ fontSize: "0.75rem", color: "#c4593a", textDecoration: "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block", maxWidth: "20rem", transition: "color 0.15s" }}
+                        style={{ fontSize: "0.75rem", color: "#c4593a", textDecoration: "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block", maxWidth: "22rem", transition: "color 0.15s" }}
                         className="hover:text-terracotta-dark"
                       >
                         {r.site_web!.replace(/^https?:\/\//, "").replace(/\/$/, "")}
@@ -212,16 +229,21 @@ export default async function CleanupPage({
                     <td style={{ padding: "0.625rem 1rem", color: "#888", fontSize: "0.8125rem" }}>{r.ville}</td>
                     <td style={{ padding: "0.625rem 1rem", textAlign: "right" }}>
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "0.5rem" }}>
-                        <a
-                          href={`/admin/residence/${r.id}`}
-                          style={{ fontSize: "0.75rem", color: "#1C2B4A", fontWeight: 600, textDecoration: "none", transition: "color 0.15s" }}
-                          className="hover:text-terracotta"
-                        >
-                          Éditer
-                        </a>
+                        {/* Légitimer — marks as reviewed, hides from this list */}
+                        <form action={markReviewedAction}>
+                          <input type="hidden" name="id" value={r.id} />
+                          <input type="hidden" name="returnTo" value={returnTo} />
+                          <button
+                            type="submit"
+                            style={{ fontSize: "0.7rem", color: "#16a34a", fontWeight: 600, border: "1px solid #bbf7d0", borderRadius: "0.375rem", padding: "2px 8px", background: "#f0fdf4", cursor: "pointer", transition: "all 0.15s" }}
+                            className="hover:bg-green-100 hover:border-green-400"
+                          >
+                            ✓ Légitimer
+                          </button>
+                        </form>
                         <form action={deleteResidenceAction}>
                           <input type="hidden" name="id" value={r.id} />
-                          <input type="hidden" name="returnTo" value="/admin/cleanup" />
+                          <input type="hidden" name="returnTo" value={returnTo} />
                           <button
                             type="submit"
                             style={{ fontSize: "0.7rem", color: "#f87171", fontWeight: 500, border: "1px solid #fee2e2", borderRadius: "0.375rem", padding: "2px 8px", background: "transparent", cursor: "pointer", transition: "all 0.15s" }}

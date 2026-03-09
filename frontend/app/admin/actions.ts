@@ -57,6 +57,14 @@ export async function bulkDeleteAction(formData: FormData) {
   redirect(`/admin/cleanup?deleted=${ids.length}`);
 }
 
+export async function markReviewedAction(formData: FormData) {
+  await assertAuth();
+  const id = parseInt(formData.get("id") as string);
+  const returnTo = (formData.get("returnTo") as string) || "/admin/cleanup";
+  await getSb().from("residences").update({ is_reviewed: true }).eq("id", id);
+  redirect(returnTo);
+}
+
 export async function updateResidenceAction(formData: FormData) {
   await assertAuth();
   const id = parseInt(formData.get("id") as string);
