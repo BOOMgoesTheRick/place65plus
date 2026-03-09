@@ -15,6 +15,7 @@
     "flag-suspicious-csv": "node scripts/08-flag-suspicious.js --csv",
     "cleanup-dry": "node scripts/09-cleanup-incomplete.js",
     "cleanup": "node scripts/09-cleanup-incomplete.js --delete",
+    "scrape-services": "node scripts/10-scrape-services.js",
     "pipeline": "npm run scrape && npm run clean && npm run geocode && npm run import"
   },
   "keywords": [],

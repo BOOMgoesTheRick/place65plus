@@ -62,6 +62,7 @@ interface SearchPageProps {
     categorie?: string;
     note?: string;
     page?: string;
+    services?: string | string[];
   }>;
 }
 
@@ -130,11 +131,17 @@ async function getNearbyIds(cityQuery: string): Promise<number[] | null> {
   return null;
 }
 
+const VALID_SERVICES = [
+  "service_repas","service_soins","service_assistance",
+  "service_alimentation","service_loisirs","service_securite",
+] as const;
+
 async function getResidences(
   q: string,
   region: string,
   categorie: string,
   note: string,
+  services: string[],
   page: number
 ): Promise<{ data: Residence[]; count: number }> {
   let query = supabase.from("residences").select("*", { count: "exact" });
@@ -162,6 +169,11 @@ async function getResidences(
   if (note) {
     query = query.gte("note_google", parseFloat(note));
   }
+  for (const svc of services) {
+    if ((VALID_SERVICES as readonly string[]).includes(svc)) {
+      query = query.eq(svc as typeof VALID_SERVICES[number], true);
+    }
+  }
   query = query
     .order("quality_score", { ascending: false, nullsFirst: false })
     .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
@@ -182,9 +194,10 @@ export default async function RecherchePage({ params, searchParams }: SearchPage
   const categorie = sp.categorie ?? "";
   const note = sp.note ?? "";
   const page = parseInt(sp.page ?? "1", 10);
+  const services = sp.services ? (Array.isArray(sp.services) ? sp.services : [sp.services]) : [];
   const lcLocale = locale === "fr" ? "fr-CA" : "en-CA";
 
-  const { data: residences, count } = await getResidences(q, region, categorie, note, page);
+  const { data: residences, count } = await getResidences(q, region, categorie, note, services, page);
   const totalPages = Math.ceil(count / PAGE_SIZE);
 
   const buildPageUrl = (p: number) => {
@@ -193,6 +206,7 @@ export default async function RecherchePage({ params, searchParams }: SearchPage
     if (region) urlParams.set("region", region);
     if (categorie) urlParams.set("categorie", categorie);
     if (note) urlParams.set("note", note);
+    services.forEach((s) => urlParams.append("services", s));
     if (p > 1) urlParams.set("page", String(p));
     return `/recherche?${urlParams.toString()}`;
   };
@@ -204,7 +218,7 @@ export default async function RecherchePage({ params, searchParams }: SearchPage
       <div className="bg-white border-b border-gris sticky top-16 z-40 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-3 space-y-3">
           <SearchBar defaultValue={q} />
-          <FilterBar currentRegion={region} currentCategorie={categorie} currentRating={note} />
+          <FilterBar currentRegion={region} currentCategorie={categorie} currentRating={note} currentServices={services} />
         </div>
       </div>
 

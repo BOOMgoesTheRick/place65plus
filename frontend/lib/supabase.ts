@@ -30,4 +30,10 @@ export type Residence = {
   fiche_reclamee: boolean;
   tier: string | null;
   quality_score: number | null;
+  service_repas: boolean | null;
+  service_soins: boolean | null;
+  service_assistance: boolean | null;
+  service_alimentation: boolean | null;
+  service_loisirs: boolean | null;
+  service_securite: boolean | null;
 };
