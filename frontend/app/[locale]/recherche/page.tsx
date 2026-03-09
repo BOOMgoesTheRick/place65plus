@@ -148,7 +148,8 @@ async function getResidences(
   services: string[],
   page: number
 ): Promise<{ data: Residence[]; count: number }> {
-  const applyFilters = (q: ReturnType<typeof supabase.from>) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const applyFilters = (q: any) => {
     let fq = q;
     if (region)    fq = fq.ilike("region_search", `%${normalizeQuery(region)}%`);
     if (categorie) fq = fq.ilike("categorie", `%${categorie}%`);
