@@ -17,18 +17,32 @@ const REGIONS = [
   "Outaouais","Saguenay–Lac-Saint-Jean","Terres-Cries-de-la-Baie-James",
 ];
 
-const SUSPICIOUS_KEYWORDS = [
+const SUSPICIOUS_URL_KEYWORDS = [
   "habitations","condo","condos","appartement","appartements","immobilier",
   "locatif","logement","logements","lofts","realty","investissement",
-  "real-estate","realestate","rental","properties",
+  "real-estate","realestate","rental","properties","location","loyer",
+  "multiplex","triplex","duplex","plex","invest","portfolio","vente",
+  "commercial","hotel","motel","airbnb","chalet","cottage","gite",
+  "auberge","chambre","chambreur","hebergement","hébergement",
 ];
 
-function isSuspicious(url: string | null): boolean {
-  if (!url) return false;
+const SUSPICIOUS_NAME_KEYWORDS = [
+  "condo","condos","appartement","appartements","loft","lofts","multiplex",
+  "triplex","duplex","plex","hotel","motel","auberge","gite","gîte",
+  "chalet","cottage","logement","logements","habitation","habitations",
+];
+
+function isSuspicious(url: string | null, nom?: string | null): boolean {
+  const urlStr = (url ?? "").toLowerCase();
   try {
-    const host = new URL(url).hostname.toLowerCase();
-    return SUSPICIOUS_KEYWORDS.some((k) => host.includes(k));
-  } catch { return false; }
+    const host = new URL(urlStr).hostname;
+    if (SUSPICIOUS_URL_KEYWORDS.some((k) => host.includes(k))) return true;
+  } catch { /* ignore */ }
+  if (nom) {
+    const nomLower = nom.toLowerCase();
+    if (SUSPICIOUS_NAME_KEYWORDS.some((k) => nomLower.includes(k))) return true;
+  }
+  return false;
 }
 
 const PAGE_SIZE = 50;
@@ -61,14 +75,10 @@ export default async function ResidencesPage({ searchParams }: Props) {
   if (noPhone) query = query.or("telephone.is.null,telephone.eq.");
   if (noWebsite) query = query.is("site_web", null);
   if (noGoogle) query = query.is("note_google", null);
-  if (suspiciousOnly) {
-    const clauses = SUSPICIOUS_KEYWORDS.map((k) => `site_web.ilike.%${k}%`).join(",");
-    query = query.or(clauses);
-  }
-
   query = query.order("id", { ascending: false });
 
-  const fetchLimit = suspiciousOnly ? 2000 : PAGE_SIZE;
+  // Suspicious is JS-side (name + URL), fetch broadly
+  const fetchLimit = suspiciousOnly ? 5000 : PAGE_SIZE;
   const fetchOffset = suspiciousOnly ? 0 : (page - 1) * PAGE_SIZE;
 
   if (!suspiciousOnly) {
@@ -82,7 +92,7 @@ export default async function ResidencesPage({ searchParams }: Props) {
   let total = dbCount ?? 0;
 
   if (suspiciousOnly) {
-    rows = rows.filter((r) => isSuspicious(r.site_web));
+    rows = rows.filter((r) => isSuspicious(r.site_web, r.nom));
     total = rows.length;
     const start = (page - 1) * PAGE_SIZE;
     rows = rows.slice(start, start + PAGE_SIZE);
@@ -217,7 +227,7 @@ export default async function ResidencesPage({ searchParams }: Props) {
           </thead>
           <tbody>
             {rows.map((r, i) => {
-              const suspicious = isSuspicious(r.site_web);
+              const suspicious = isSuspicious(r.site_web, r.nom);
               return (
                 <tr
                   key={r.id}

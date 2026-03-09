@@ -9,18 +9,34 @@ function getSb() {
   );
 }
 
-const SUSPICIOUS_KEYWORDS = [
+const SUSPICIOUS_URL_KEYWORDS = [
   "habitations","condo","condos","appartement","appartements","immobilier",
   "locatif","logement","logements","lofts","realty","investissement",
-  "real-estate","realestate","rental","properties",
+  "real-estate","realestate","rental","properties","location","loyer",
+  "multiplex","triplex","duplex","plex","invest","portfolio","vente",
+  "commercial","hotel","motel","airbnb","chalet","cottage","gite",
+  "auberge","chambre","chambreur","hebergement","hébergement",
 ];
 
-function isSuspicious(url: string | null): boolean {
-  if (!url) return false;
+const SUSPICIOUS_NAME_KEYWORDS = [
+  "condo","condos","appartement","appartements","loft","lofts","multiplex",
+  "triplex","duplex","plex","hotel","motel","auberge","gite","gîte",
+  "chalet","cottage","logement","logements","habitation","habitations",
+];
+
+function isSuspicious(url: string | null, nom?: string | null): boolean {
+  const urlStr = (url ?? "").toLowerCase();
   try {
-    const host = new URL(url).hostname.toLowerCase();
-    return SUSPICIOUS_KEYWORDS.some((k) => host.includes(k));
-  } catch { return false; }
+    const host = new URL(urlStr).hostname;
+    if (SUSPICIOUS_URL_KEYWORDS.some((k) => host.includes(k))) return true;
+  } catch { /* ignore invalid URLs */ }
+
+  if (nom) {
+    const nomLower = nom.toLowerCase();
+    if (SUSPICIOUS_NAME_KEYWORDS.some((k) => nomLower.includes(k))) return true;
+  }
+
+  return false;
 }
 
 const tableStyle = { width: "100%", borderCollapse: "collapse" as const, fontSize: "0.875rem" };
@@ -45,23 +61,22 @@ export default async function CleanupPage({
   const sp = await searchParams;
   const sb = getSb();
 
-  const [{ data: incompleteRows }, { data: allWithWebsite }] = await Promise.all([
-    // Broader criteria: no phone, OR (no website AND no google)
+  const [{ data: incompleteRows }, { data: allRows }] = await Promise.all([
+    // Broader criteria: no phone AND (no website OR no google)
     sb.from("residences")
       .select("id, nom, ville, region, telephone, site_web, note_google")
       .or("telephone.is.null,telephone.eq.")
       .order("nom", { ascending: true }),
     sb.from("residences")
       .select("id, nom, ville, region, site_web, is_reviewed")
-      .not("site_web", "is", null)
       .order("nom", { ascending: true }),
   ]);
 
   const incomplete = (incompleteRows ?? []).filter(
     (r) => !r.telephone && (!r.site_web || !r.note_google)
   );
-  const suspicious = (allWithWebsite ?? []).filter(
-    (r) => !r.is_reviewed && isSuspicious(r.site_web)
+  const suspicious = (allRows ?? []).filter(
+    (r) => !r.is_reviewed && isSuspicious(r.site_web, r.nom)
   );
   const incompleteIds = incomplete.map((r) => r.id).join(",");
   const deletedCount = sp.deleted ? parseInt(sp.deleted) : 0;
