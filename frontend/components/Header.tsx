@@ -23,7 +23,6 @@ export default function Header() {
 
   const navItems = [
     { href: "/recherche", label: t("findResidence") },
-    { href: "/carte", label: t("interactiveMap") },
     { href: "/blog", label: t("guide") },
   ];
 
