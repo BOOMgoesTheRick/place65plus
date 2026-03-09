@@ -61,22 +61,31 @@ export default async function CleanupPage({
   const sp = await searchParams;
   const sb = getSb();
 
-  const [{ data: incompleteRows }, { data: allRows }] = await Promise.all([
+  // Build name-keyword OR clauses for DB-side pre-filtering
+  const nameOrClauses = SUSPICIOUS_NAME_KEYWORDS.map((k) => `nom.ilike.%${k}%`).join(",");
+  const urlOrClauses = SUSPICIOUS_URL_KEYWORDS.map((k) => `site_web.ilike.%${k}%`).join(",");
+
+  const [incompleteRes, suspiciousRes] = await Promise.all([
     // Broader criteria: no phone AND (no website OR no google)
     sb.from("residences")
       .select("id, nom, ville, region, telephone, site_web, note_google")
       .or("telephone.is.null,telephone.eq.")
-      .order("nom", { ascending: true }),
+      .order("nom", { ascending: true })
+      .limit(2000),
+    // Pre-filter by keywords in DB, then refine in JS
     sb.from("residences")
       .select("id, nom, ville, region, site_web, is_reviewed")
-      .order("nom", { ascending: true }),
+      .or(`${nameOrClauses},${urlOrClauses}`)
+      .eq("is_reviewed", false)
+      .order("nom", { ascending: true })
+      .limit(2000),
   ]);
 
-  const incomplete = (incompleteRows ?? []).filter(
+  const incomplete = (incompleteRes.data ?? []).filter(
     (r) => !r.telephone && (!r.site_web || !r.note_google)
   );
-  const suspicious = (allRows ?? []).filter(
-    (r) => !r.is_reviewed && isSuspicious(r.site_web, r.nom)
+  const suspicious = (suspiciousRes.data ?? []).filter(
+    (r) => isSuspicious(r.site_web, r.nom)
   );
   const incompleteIds = incomplete.map((r) => r.id).join(",");
   const deletedCount = sp.deleted ? parseInt(sp.deleted) : 0;
