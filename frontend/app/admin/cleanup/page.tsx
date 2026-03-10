@@ -66,14 +66,22 @@ export default async function CleanupPage({
   // 2. All non-reviewed residences matching name keywords (short OR list)
   const nameOrClauses = SUSPICIOUS_NAME_KEYWORDS.map((k) => `nom.ilike.%${k}%`).join(",");
 
-  const [incompleteRes, urlRes, nameRes] = await Promise.all([
+  const [incompleteRes, phoneOnlyRes, urlRes, nameRes, dupePhoneRes] = await Promise.all([
+    // No phone AND (no website OR no google)
     sb.from("residences")
       .select("id, nom, ville, region, telephone, site_web, note_google")
       .or("telephone.is.null,telephone.eq.")
       .order("nom", { ascending: true })
       .limit(2000),
+    // Has phone but zero quality — no website, no google data
+    sb.from("residences")
+      .select("id, nom, ville, region, telephone, site_web, note_google, quality_score")
+      .not("telephone", "is", null).neq("telephone", "")
+      .is("site_web", null)
+      .is("note_google", null)
+      .order("nom", { ascending: true })
+      .limit(2000),
     // Residences with a website — filter URL keywords in JS
-    // is_reviewed filtered in JS (avoids PostgREST schema cache issues)
     sb.from("residences")
       .select("id, nom, ville, region, site_web, is_reviewed")
       .not("site_web", "is", null)
@@ -85,10 +93,35 @@ export default async function CleanupPage({
       .or(nameOrClauses)
       .order("nom", { ascending: true })
       .limit(500),
+    // Duplicate phone numbers — fetch all phones, detect dupes in JS
+    sb.from("residences")
+      .select("id, nom, ville, region, telephone, quality_score")
+      .not("telephone", "is", null).neq("telephone", "")
+      .order("telephone", { ascending: true })
+      .limit(3000),
   ]);
 
   const incomplete = (incompleteRes.data ?? []).filter(
     (r) => !r.telephone && (!r.site_web || !r.note_google)
+  );
+
+  // Phone-only: has phone but no website and no google
+  const phoneOnly = phoneOnlyRes.data ?? [];
+
+  // Duplicate phones
+  const phoneCounts: Record<string, number[]> = {};
+  for (const r of dupePhoneRes.data ?? []) {
+    const ph = r.telephone.replace(/\D/g, ""); // normalize digits only
+    if (!phoneCounts[ph]) phoneCounts[ph] = [];
+    phoneCounts[ph].push(r.id);
+  }
+  const dupePhoneIds = new Set(
+    Object.values(phoneCounts)
+      .filter((ids) => ids.length > 1)
+      .flat()
+  );
+  const dupePhones = (dupePhoneRes.data ?? []).filter((r) =>
+    dupePhoneIds.has(r.id)
   );
 
   // Merge URL-checked and name-checked rows, deduplicate by id
@@ -101,6 +134,7 @@ export default async function CleanupPage({
     return isSuspicious(r.site_web, r.nom);
   }).sort((a, b) => (a.nom ?? "").localeCompare(b.nom ?? "", "fr"));
   const incompleteIds = incomplete.map((r) => r.id).join(",");
+  const phoneOnlyIds = phoneOnly.map((r) => r.id).join(",");
   const deletedCount = sp.deleted ? parseInt(sp.deleted) : 0;
 
   const returnTo = "/admin/cleanup";
@@ -112,7 +146,7 @@ export default async function CleanupPage({
         <h1 style={{ fontFamily: "var(--font-playfair), Georgia, serif", fontSize: "1.75rem", fontWeight: 700, color: "#1C2B4A", letterSpacing: "-0.02em", lineHeight: 1.2 }}>
           Nettoyage
         </h1>
-        <p style={{ color: "#888", fontSize: "0.875rem", marginTop: "4px" }}>Fiches incomplètes et domaines suspects</p>
+        <p style={{ color: "#888", fontSize: "0.875rem", marginTop: "4px" }}>Fiches incomplètes, suspectes et doublons</p>
       </div>
 
       {sp.deleted && (
@@ -202,6 +236,117 @@ export default async function CleanupPage({
                           Suppr.
                         </button>
                       </form>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      {/* ── Phone-only ── */}
+      <section style={{ marginBottom: "2.5rem" }}>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "0.875rem" }}>
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.625rem", marginBottom: "4px" }}>
+              <h2 style={{ fontWeight: 700, color: "#1a1a1a", fontSize: "1rem" }}>Téléphone seulement</h2>
+              <span style={{ fontSize: "0.65rem", background: phoneOnly.length > 0 ? "#fef2f2" : "#f0fdf4", color: phoneOnly.length > 0 ? "#b91c1c" : "#15803d", fontWeight: 700, padding: "2px 8px", borderRadius: "100px", letterSpacing: "0.05em" }}>
+                {phoneOnly.length}
+              </span>
+            </div>
+            <p style={{ color: "#aaa", fontSize: "0.8125rem" }}>Ont un numéro mais aucune donnée utile — pas de site web ni de données Google</p>
+          </div>
+          {phoneOnly.length > 0 && (
+            <form action={bulkDeleteAction}>
+              <input type="hidden" name="ids" value={phoneOnlyIds} />
+              <button type="submit" style={{ padding: "0.5rem 1rem", background: "#dc2626", color: "#fff", fontSize: "0.8125rem", fontWeight: 600, borderRadius: "0.5rem", border: "none", cursor: "pointer", flexShrink: 0 }} className="hover:bg-red-700">
+                Tout supprimer ({phoneOnly.length})
+              </button>
+            </form>
+          )}
+        </div>
+        {phoneOnly.length === 0 ? (
+          <div style={{ background: "#f0fdf4", border: "1px solid #dcfce7", borderRadius: "0.875rem", padding: "2.5rem", textAlign: "center", color: "#15803d", fontSize: "0.875rem" }}>✓ Aucune fiche téléphone seulement.</div>
+        ) : (
+          <div style={{ background: "#fff", border: "1px solid rgba(0,0,0,0.08)", borderRadius: "0.875rem", overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+            <table style={tableStyle}>
+              <thead><tr>
+                <th style={{ ...thStyle, width: "3.5rem" }}>ID</th>
+                <th style={thStyle}>Nom</th>
+                <th style={{ ...thStyle, width: "10rem" }}>Téléphone</th>
+                <th style={{ ...thStyle, width: "8rem" }}>Ville</th>
+                <th style={{ ...thStyle, width: "9rem" }}>Région</th>
+                <th style={{ ...thStyle, width: "5rem", textAlign: "right" as const }}></th>
+              </tr></thead>
+              <tbody>
+                {phoneOnly.map((r, i) => (
+                  <tr key={r.id} style={{ borderTop: i === 0 ? "none" : "1px solid rgba(0,0,0,0.045)", transition: "background 0.12s" }} className="hover:bg-gray-50">
+                    <td style={{ padding: "0.625rem 1rem", color: "#ccc", fontSize: "0.7rem", fontFamily: "monospace" }}>#{r.id}</td>
+                    <td style={{ padding: "0.625rem 1rem" }}>
+                      <a href={`/admin/residence/${r.id}`} style={{ fontWeight: 500, color: "#1a1a1a", textDecoration: "none" }} className="hover:text-marine">{r.nom}</a>
+                    </td>
+                    <td style={{ padding: "0.625rem 1rem", color: "#666", fontSize: "0.8125rem", fontFamily: "monospace" }}>{r.telephone}</td>
+                    <td style={{ padding: "0.625rem 1rem", color: "#888", fontSize: "0.8125rem" }}>{r.ville}</td>
+                    <td style={{ padding: "0.625rem 1rem", color: "#aaa", fontSize: "0.75rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.region}</td>
+                    <td style={{ padding: "0.625rem 1rem", textAlign: "right" }}>
+                      <form action={deleteResidenceAction}>
+                        <input type="hidden" name="id" value={r.id} />
+                        <input type="hidden" name="returnTo" value={returnTo} />
+                        <button type="submit" style={{ fontSize: "0.7rem", color: "#f87171", fontWeight: 500, border: "1px solid #fee2e2", borderRadius: "0.375rem", padding: "2px 8px", background: "transparent", cursor: "pointer" }} className="hover:text-red-600 hover:border-red-300 hover:bg-red-50">Suppr.</button>
+                      </form>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      {/* ── Duplicate phones ── */}
+      <section style={{ marginBottom: "2.5rem" }}>
+        <div style={{ marginBottom: "0.875rem" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.625rem", marginBottom: "4px" }}>
+            <h2 style={{ fontWeight: 700, color: "#1a1a1a", fontSize: "1rem" }}>Numéros en double</h2>
+            <span style={{ fontSize: "0.65rem", background: dupePhones.length > 0 ? "#fff7ed" : "#f0fdf4", color: dupePhones.length > 0 ? "#c2410c" : "#15803d", fontWeight: 700, padding: "2px 8px", borderRadius: "100px", letterSpacing: "0.05em" }}>
+              {dupePhones.length}
+            </span>
+          </div>
+          <p style={{ color: "#aaa", fontSize: "0.8125rem" }}>Plusieurs fiches partagent le même numéro de téléphone — probablement des doublons</p>
+        </div>
+        {dupePhones.length === 0 ? (
+          <div style={{ background: "#f0fdf4", border: "1px solid #dcfce7", borderRadius: "0.875rem", padding: "2.5rem", textAlign: "center", color: "#15803d", fontSize: "0.875rem" }}>✓ Aucun doublon détecté.</div>
+        ) : (
+          <div style={{ background: "#fff", border: "1px solid rgba(0,0,0,0.08)", borderRadius: "0.875rem", overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+            <table style={tableStyle}>
+              <thead><tr>
+                <th style={{ ...thStyle, width: "3.5rem" }}>ID</th>
+                <th style={thStyle}>Nom</th>
+                <th style={{ ...thStyle, width: "10rem" }}>Téléphone</th>
+                <th style={{ ...thStyle, width: "8rem" }}>Ville</th>
+                <th style={{ ...thStyle, width: "5rem" }}>Score</th>
+                <th style={{ ...thStyle, width: "5rem", textAlign: "right" as const }}></th>
+              </tr></thead>
+              <tbody>
+                {dupePhones.map((r, i) => (
+                  <tr key={r.id} style={{ borderTop: i === 0 ? "none" : "1px solid rgba(0,0,0,0.045)", transition: "background 0.12s" }} className="hover:bg-orange-50/50">
+                    <td style={{ padding: "0.625rem 1rem", color: "#ccc", fontSize: "0.7rem", fontFamily: "monospace" }}>#{r.id}</td>
+                    <td style={{ padding: "0.625rem 1rem" }}>
+                      <a href={`/admin/residence/${r.id}`} style={{ fontWeight: 500, color: "#1a1a1a", textDecoration: "none" }} className="hover:text-marine">{r.nom}</a>
+                    </td>
+                    <td style={{ padding: "0.625rem 1rem", color: "#c2410c", fontSize: "0.8125rem", fontFamily: "monospace" }}>{r.telephone}</td>
+                    <td style={{ padding: "0.625rem 1rem", color: "#888", fontSize: "0.8125rem" }}>{r.ville}</td>
+                    <td style={{ padding: "0.625rem 1rem", color: "#aaa", fontSize: "0.8125rem" }}>{r.quality_score ?? "—"}</td>
+                    <td style={{ padding: "0.625rem 1rem", textAlign: "right" }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "0.5rem" }}>
+                        <a href={`/admin/residence/${r.id}`} style={{ fontSize: "0.75rem", color: "#1C2B4A", fontWeight: 600, textDecoration: "none" }} className="hover:text-terracotta">Éditer</a>
+                        <form action={deleteResidenceAction}>
+                          <input type="hidden" name="id" value={r.id} />
+                          <input type="hidden" name="returnTo" value={returnTo} />
+                          <button type="submit" style={{ fontSize: "0.7rem", color: "#f87171", fontWeight: 500, border: "1px solid #fee2e2", borderRadius: "0.375rem", padding: "2px 8px", background: "transparent", cursor: "pointer" }} className="hover:text-red-600 hover:border-red-300 hover:bg-red-50">Suppr.</button>
+                        </form>
+                      </div>
                     </td>
                   </tr>
                 ))}
