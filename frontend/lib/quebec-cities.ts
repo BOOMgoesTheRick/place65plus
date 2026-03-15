@@ -82,7 +82,6 @@ export const QUEBEC_CITIES: Record<string, { lat: number; lng: number }> = {
   "cowansville":           { lat: 45.2000,  lng: -72.7500 },
   "bedford":               { lat: 45.1167,  lng: -72.9833 },
   "farnham":               { lat: 45.2833,  lng: -72.9833 },
-  "saint-hyacinthe":       { lat: 45.6167,  lng: -72.9500 },
   "acton-vale":            { lat: 45.6500,  lng: -72.5667 },
   "richmond":              { lat: 45.6500,  lng: -72.1500 },
   "asbestos":              { lat: 45.7667,  lng: -71.9333 },
