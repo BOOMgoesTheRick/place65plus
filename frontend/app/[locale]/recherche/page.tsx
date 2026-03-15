@@ -1,4 +1,5 @@
 import { supabase, Residence } from "@/lib/supabase";
+import { lookupCity } from "@/lib/quebec-cities";
 import Header from "@/components/Header";
 import SearchBar from "@/components/SearchBar";
 import ResidenceCard from "@/components/ResidenceCard";
@@ -89,20 +90,8 @@ function expandCityQuery(q: string): string[] {
   return variants;
 }
 
-async function geocodeCity(query: string): Promise<{ lat: number; lng: number } | null> {
-  const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY;
-  if (!key) return null;
-  try {
-    const res = await fetch(
-      `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(query + " Québec Canada")}&key=${key}`
-    );
-    const json = await res.json();
-    if (json.status === "OK" && json.results.length > 0) {
-      const loc = json.results[0].geometry.location;
-      return { lat: loc.lat, lng: loc.lng };
-    }
-  } catch { /* ignore */ }
-  return null;
+function geocodeCity(query: string): { lat: number; lng: number } | null {
+  return lookupCity(query);
 }
 
 async function getNearbyIds(cityQuery: string): Promise<{ ids: number[]; cityNorm: string } | null> {
@@ -119,7 +108,7 @@ async function getNearbyIds(cityQuery: string): Promise<{ ids: number[]; cityNor
       };
     }
   }
-  const coords = await geocodeCity(cityQuery);
+  const coords = geocodeCity(cityQuery);
   if (!coords) return null;
   const { data } = await supabase.rpc("residences_near_point", {
     lat: coords.lat,
