@@ -110,7 +110,7 @@ export default async function EditResidencePage({
           {r.photo_url && (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={r.photo_url.replace(/key=[^&]+/, `key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY}`)}
+              src={r.photo_url}
               alt={r.nom}
               style={{ width: "96px", height: "76px", objectFit: "cover", borderRadius: "0.5rem", flexShrink: 0 }}
             />
