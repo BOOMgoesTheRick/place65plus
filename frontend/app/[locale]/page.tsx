@@ -34,7 +34,7 @@ export default async function ComingSoonPage({
             fontSize: "1.1rem",
             fontWeight: 600,
             letterSpacing: "0.08em",
-            color: "#1C2B4A",
+            color: "#3D5A8A",
             textTransform: "uppercase",
           }}
         >
@@ -49,7 +49,7 @@ export default async function ComingSoonPage({
           fontFamily: "var(--font-playfair), Georgia, serif",
           fontSize: "clamp(2rem, 5vw, 3.5rem)",
           fontWeight: 700,
-          color: "#1C2B4A",
+          color: "#2A3F6B",
           lineHeight: 1.2,
           marginBottom: "1.25rem",
           maxWidth: "600px",
@@ -61,7 +61,7 @@ export default async function ComingSoonPage({
       <p
         style={{
           fontSize: "1.05rem",
-          color: "#6B7280",
+          color: "#4B5563",
           maxWidth: "420px",
           lineHeight: 1.7,
           marginBottom: "3rem",
@@ -76,10 +76,10 @@ export default async function ComingSoonPage({
         href={fr ? "/en" : "/fr"}
         style={{
           fontSize: "0.8rem",
-          color: "#9CA3AF",
+          color: "#6B7280",
           textDecoration: "none",
           letterSpacing: "0.05em",
-          borderBottom: "1px solid #D1D5DB",
+          borderBottom: "1px solid #9CA3AF",
           paddingBottom: "2px",
         }}
       >
